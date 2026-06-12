@@ -1,0 +1,177 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Tournament {
+  id            String    @id @default(uuid()) @db.Uuid
+  slug          String    @unique
+  name          String
+  startsOn      DateTime  @map("starts_on") @db.Date
+  endsOn        DateTime? @map("ends_on") @db.Date
+  venue         String
+  city          String
+  format        String
+  status        String    @default("draft")
+  tournamentType String   @default("public") @map("tournament_type")
+  seasonYear    Int      @default(2026) @map("season_year")
+  mvpMode       String   @default("overall") @map("mvp_mode")
+  gameMinutes   Int       @default(45) @map("game_minutes")
+  slotGapMinutes Int      @default(0) @map("slot_gap_minutes")
+  checkInAt     DateTime? @map("check_in_at")
+  winPoints     Int       @default(3) @map("win_points")
+  drawPoints    Int       @default(1) @map("draw_points")
+  lossPoints    Int       @default(0) @map("loss_points")
+  announcements String[]  @default([])
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  bracketMatches BracketMatch[]
+  fixtures       Fixture[]
+  mvpVotes       MvpVote[]
+  pitches        Pitch[]
+  scheduleBlocks ScheduleBlock[]
+  teams          Team[]
+
+  @@map("tournaments")
+}
+
+model ScheduleBlock {
+  id           String   @id @default(uuid()) @db.Uuid
+  tournamentId String   @map("tournament_id") @db.Uuid
+  label        String
+  startsAt     DateTime @map("starts_at")
+  endsAt       DateTime @map("ends_at")
+  sortOrder    Int      @default(0) @map("sort_order")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  tournament Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+
+  @@index([tournamentId, startsAt])
+  @@map("schedule_blocks")
+}
+
+model Pitch {
+  id           String @id @default(uuid()) @db.Uuid
+  tournamentId String @map("tournament_id") @db.Uuid
+  name         String
+  sortOrder    Int    @default(0) @map("sort_order")
+
+  tournament    Tournament     @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  bracketMatches BracketMatch[]
+  fixtures      Fixture[]
+
+  @@unique([tournamentId, name])
+  @@map("pitches")
+}
+
+model Team {
+  id           String   @id @default(uuid()) @db.Uuid
+  tournamentId String   @map("tournament_id") @db.Uuid
+  name         String
+  shortName    String   @map("short_name")
+  colour       String   @default("#0f172a")
+  contactName  String?  @map("contact_name")
+  contactEmail String?  @map("contact_email")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  tournament         Tournament    @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  awayBracketMatches BracketMatch[] @relation("AwayBracketTeam")
+  awayFixtures       Fixture[]     @relation("AwayTeam")
+  homeBracketMatches BracketMatch[] @relation("HomeBracketTeam")
+  homeFixtures       Fixture[]     @relation("HomeTeam")
+  mvpVotes           MvpVote[]
+  players            Player[]
+
+  @@unique([tournamentId, name])
+  @@unique([tournamentId, shortName])
+  @@index([tournamentId])
+  @@map("teams")
+}
+
+model Player {
+  id          String   @id @default(uuid()) @db.Uuid
+  teamId      String   @map("team_id") @db.Uuid
+  name        String
+  shirtNumber Int?     @map("shirt_number")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  team Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
+
+  @@index([teamId])
+  @@map("players")
+}
+
+model Fixture {
+  id           String   @id @default(uuid()) @db.Uuid
+  tournamentId String   @map("tournament_id") @db.Uuid
+  round        Int
+  startsAt     DateTime @map("starts_at")
+  pitchId      String?  @map("pitch_id") @db.Uuid
+  homeTeamId   String   @map("home_team_id") @db.Uuid
+  awayTeamId   String   @map("away_team_id") @db.Uuid
+  stage        String   @default("group")
+  homeRuns     Int?     @map("home_runs")
+  awayRuns     Int?     @map("away_runs")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  awayTeam   Team       @relation("AwayTeam", fields: [awayTeamId], references: [id], onDelete: Cascade)
+  homeTeam   Team       @relation("HomeTeam", fields: [homeTeamId], references: [id], onDelete: Cascade)
+  pitch      Pitch?     @relation(fields: [pitchId], references: [id], onDelete: SetNull)
+  tournament Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  mvpVotes   MvpVote[]
+
+  @@index([awayTeamId])
+  @@index([homeTeamId])
+  @@index([tournamentId, startsAt])
+  @@map("fixtures")
+}
+
+model MvpVote {
+  id           String   @id @default(uuid()) @db.Uuid
+  tournamentId String   @map("tournament_id") @db.Uuid
+  fixtureId    String   @map("fixture_id") @db.Uuid
+  teamId       String   @map("team_id") @db.Uuid
+  category     String   @default("overall")
+  playerName   String   @map("player_name")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  fixture    Fixture    @relation(fields: [fixtureId], references: [id], onDelete: Cascade)
+  team       Team       @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  tournament Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+
+  @@unique([fixtureId, teamId, category])
+  @@index([teamId])
+  @@index([tournamentId])
+  @@map("mvp_votes")
+}
+
+model BracketMatch {
+  id           String   @id @default(uuid()) @db.Uuid
+  tournamentId String   @map("tournament_id") @db.Uuid
+  label        String
+  stage        String
+  startsAt     DateTime @map("starts_at")
+  pitchId      String?  @map("pitch_id") @db.Uuid
+  homeSeed     String   @map("home_seed")
+  awaySeed     String   @map("away_seed")
+  homeTeamId   String?  @map("home_team_id") @db.Uuid
+  awayTeamId   String?  @map("away_team_id") @db.Uuid
+  homeRuns     Int?     @map("home_runs")
+  awayRuns     Int?     @map("away_runs")
+  sortOrder    Int      @default(0) @map("sort_order")
+
+  awayTeam   Team?      @relation("AwayBracketTeam", fields: [awayTeamId], references: [id], onDelete: SetNull)
+  homeTeam   Team?      @relation("HomeBracketTeam", fields: [homeTeamId], references: [id], onDelete: SetNull)
+  pitch      Pitch?     @relation(fields: [pitchId], references: [id], onDelete: SetNull)
+  tournament Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+
+  @@map("bracket_matches")
+}
