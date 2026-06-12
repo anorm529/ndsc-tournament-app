@@ -69,6 +69,7 @@ export async function generateSchedule(_state: ActionState, formData: FormData) 
         pitches: tournament.pitches.map((pitch) => pitch.name),
         gameMinutes: tournament.gameMinutes,
         slotGapMinutes: tournament.slotGapMinutes,
+        schedulePublished: tournament.schedulePublished,
         checkInTime: tournament.checkInAt?.toISOString() ?? tournament.startsOn.toISOString(),
         points: {
           win: tournament.winPoints,
@@ -92,6 +93,10 @@ export async function generateSchedule(_state: ActionState, formData: FormData) 
     });
 
     await prisma.$transaction([
+      prisma.tournament.update({
+        where: { id: tournament.id },
+        data: { schedulePublished: false },
+      }),
       prisma.fixture.deleteMany({
         where: {
           tournamentId: tournament.id,
@@ -196,6 +201,10 @@ export async function generatePlacementSchedule(_state: ActionState, formData: F
     const pitchIdsByName = new Map(tournament.pitches.map((pitch) => [pitch.name, pitch.id]));
 
     await prisma.$transaction([
+      prisma.tournament.update({
+        where: { id: tournament.id },
+        data: { schedulePublished: false },
+      }),
       prisma.fixture.deleteMany({
         where: {
           tournamentId: tournament.id,
@@ -236,21 +245,89 @@ export async function addScheduleBlock(_state: ActionState, formData: FormData) 
 
     const tournament = await prisma.tournament.findUniqueOrThrow({
       where: { id: tournamentId },
-      select: { slug: true },
-    });
-
-    await prisma.scheduleBlock.create({
-      data: {
-        tournamentId,
-        label,
-        startsAt,
-        endsAt,
+      include: {
+        bracketMatches: {
+          select: { id: true, startsAt: true },
+        },
+        fixtures: {
+          select: { id: true, startsAt: true },
+        },
+        scheduleBlocks: {
+          select: { endsAt: true, id: true, startsAt: true },
+        },
       },
     });
 
+    assertBreakStartsBetweenGames({
+      bracketMatches: tournament.bracketMatches,
+      fixtures: tournament.fixtures,
+      gameMinutes: tournament.gameMinutes,
+      startsAt,
+    });
+
+    assertBreakDoesNotOverlapExistingBlocks({
+      blocks: tournament.scheduleBlocks,
+      endsAt,
+      startsAt,
+    });
+
+    const shift = getBreakShift({
+      bracketMatches: tournament.bracketMatches,
+      endsAt,
+      fixtures: tournament.fixtures,
+      startsAt,
+    });
+    const fixturesToShift = shift
+      ? tournament.fixtures.filter((fixture) => fixture.startsAt >= shift.from)
+      : [];
+    const bracketMatchesToShift = shift
+      ? tournament.bracketMatches.filter((match) => match.startsAt >= shift.from)
+      : [];
+    const scheduleBlocksToShift = shift
+      ? tournament.scheduleBlocks.filter((block) => block.startsAt >= shift.from)
+      : [];
+
+    await prisma.$transaction([
+      ...fixturesToShift.map((fixture) =>
+        prisma.fixture.update({
+          where: { id: fixture.id },
+          data: { startsAt: addMilliseconds(fixture.startsAt, shift?.milliseconds ?? 0) },
+        }),
+      ),
+      ...bracketMatchesToShift.map((match) =>
+        prisma.bracketMatch.update({
+          where: { id: match.id },
+          data: { startsAt: addMilliseconds(match.startsAt, shift?.milliseconds ?? 0) },
+        }),
+      ),
+      ...scheduleBlocksToShift.map((block) =>
+        prisma.scheduleBlock.update({
+          where: { id: block.id },
+          data: {
+            endsAt: addMilliseconds(block.endsAt, shift?.milliseconds ?? 0),
+            startsAt: addMilliseconds(block.startsAt, shift?.milliseconds ?? 0),
+          },
+        }),
+      ),
+      prisma.scheduleBlock.create({
+        data: {
+          tournamentId,
+          label,
+          startsAt,
+          endsAt,
+        },
+      }),
+    ]);
+
     revalidateSchedulePages(tournament.slug);
     refresh();
-    return successState(`${label} was added to the schedule.`);
+    const shiftedItemsCount = fixturesToShift.length + bracketMatchesToShift.length + scheduleBlocksToShift.length;
+
+    return successState(
+      shiftedItemsCount > 0
+        ? `${label} was added and ${shiftedItemsCount} later schedule item${shiftedItemsCount === 1 ? "" : "s"} moved back.`
+        : `${label} was added to the schedule.`,
+    );
   } catch (error) {
     return errorState(error);
   }
@@ -339,6 +416,10 @@ export async function generatePlannedPlayoffs(_state: ActionState, formData: For
     }
 
     await prisma.$transaction([
+      prisma.tournament.update({
+        where: { id: tournament.id },
+        data: { schedulePublished: false },
+      }),
       prisma.bracketMatch.deleteMany({
         where: {
           tournamentId,
@@ -369,6 +450,168 @@ export async function generatePlannedPlayoffs(_state: ActionState, formData: For
   }
 }
 
+export async function publishSchedule(_state: ActionState, formData: FormData) {
+  try {
+    const tournamentId = requireText(formData, "tournamentId");
+
+    const tournament = await prisma.tournament.findUniqueOrThrow({
+      where: { id: tournamentId },
+      include: {
+        _count: {
+          select: {
+            bracketMatches: true,
+            fixtures: true,
+            scheduleBlocks: true,
+          },
+        },
+      },
+    });
+
+    const itemCount = tournament._count.fixtures + tournament._count.bracketMatches + tournament._count.scheduleBlocks;
+
+    if (itemCount === 0) {
+      throw new Error("Create a schedule before publishing it.");
+    }
+
+    await prisma.tournament.update({
+      where: { id: tournament.id },
+      data: { schedulePublished: true },
+    });
+
+    revalidateSchedulePages(tournament.slug);
+    refresh();
+    return successState("Schedule published to the public page.");
+  } catch (error) {
+    return errorState(error);
+  }
+}
+
+export async function unpublishSchedule(_state: ActionState, formData: FormData) {
+  try {
+    const tournamentId = requireText(formData, "tournamentId");
+    const tournament = await prisma.tournament.findUniqueOrThrow({
+      where: { id: tournamentId },
+      select: { id: true, slug: true },
+    });
+
+    await prisma.tournament.update({
+      where: { id: tournament.id },
+      data: { schedulePublished: false },
+    });
+
+    revalidateSchedulePages(tournament.slug);
+    refresh();
+    return successState("Schedule moved back to draft.");
+  } catch (error) {
+    return errorState(error);
+  }
+}
+
+export async function deleteSchedule(_state: ActionState, formData: FormData) {
+  try {
+    const tournamentId = requireText(formData, "tournamentId");
+    const tournament = await prisma.tournament.findUniqueOrThrow({
+      where: { id: tournamentId },
+      select: { id: true, name: true, slug: true },
+    });
+
+    await prisma.$transaction([
+      prisma.tournament.update({
+        where: { id: tournament.id },
+        data: { schedulePublished: false },
+      }),
+      prisma.mvpVote.deleteMany({
+        where: { tournamentId: tournament.id },
+      }),
+      prisma.fixture.deleteMany({
+        where: { tournamentId: tournament.id },
+      }),
+      prisma.bracketMatch.deleteMany({
+        where: { tournamentId: tournament.id },
+      }),
+      prisma.scheduleBlock.deleteMany({
+        where: { tournamentId: tournament.id },
+      }),
+    ]);
+
+    revalidateSchedulePages(tournament.slug);
+    refresh();
+    return successState(`Schedule, matches, planned playoffs, breaks, and MVP votes were deleted for ${tournament.name}.`);
+  } catch (error) {
+    return errorState(error);
+  }
+}
+
+export async function updateFixtureSchedule(_state: ActionState, formData: FormData) {
+  try {
+    const fixtureId = requireText(formData, "fixtureId");
+    const startsAt = parseDatetimeLocal(requireText(formData, "fixtureStartsAt"));
+    const pitchName = requireText(formData, "pitchName");
+
+    const fixture = await prisma.fixture.findUniqueOrThrow({
+      where: { id: fixtureId },
+      select: {
+        id: true,
+        tournamentId: true,
+        tournament: {
+          select: { slug: true },
+        },
+      },
+    });
+
+    const pitch = await findTournamentPitch(pitchName, fixture.tournamentId);
+
+    await prisma.fixture.update({
+      where: { id: fixture.id },
+      data: {
+        pitchId: pitch.id,
+        startsAt,
+      },
+    });
+
+    revalidateSchedulePages(fixture.tournament.slug);
+    refresh();
+    return successState("Match slot updated.");
+  } catch (error) {
+    return errorState(error);
+  }
+}
+
+export async function updatePlannedPlayoffSlot(_state: ActionState, formData: FormData) {
+  try {
+    const matchId = requireText(formData, "matchId");
+    const startsAt = parseDatetimeLocal(requireText(formData, "matchStartsAt"));
+    const pitchName = requireText(formData, "pitchName");
+
+    const match = await prisma.bracketMatch.findUniqueOrThrow({
+      where: { id: matchId },
+      select: {
+        id: true,
+        tournamentId: true,
+        tournament: {
+          select: { slug: true },
+        },
+      },
+    });
+
+    const pitch = await findTournamentPitch(pitchName, match.tournamentId);
+
+    await prisma.bracketMatch.update({
+      where: { id: match.id },
+      data: {
+        pitchId: pitch.id,
+        startsAt,
+      },
+    });
+
+    revalidateSchedulePages(match.tournament.slug);
+    refresh();
+    return successState("Playoff slot updated.");
+  } catch (error) {
+    return errorState(error);
+  }
+}
+
 function requireText(formData: FormData, key: string) {
   const value = formData.get(key);
 
@@ -377,6 +620,22 @@ function requireText(formData: FormData, key: string) {
   }
 
   return value.trim();
+}
+
+async function findTournamentPitch(pitchName: string, tournamentId: string) {
+  const pitch = await prisma.pitch.findFirst({
+    where: {
+      name: pitchName,
+      tournamentId,
+    },
+    select: { id: true },
+  });
+
+  if (!pitch) {
+    throw new Error("Selected pitch does not belong to this tournament.");
+  }
+
+  return pitch;
 }
 
 function requireInteger(formData: FormData, key: string, min: number) {
@@ -397,6 +656,84 @@ function parseDatetimeLocal(value: string) {
   }
 
   return date;
+}
+
+function addMinutes(date: Date, minutes: number) {
+  const updated = new Date(date);
+  updated.setMinutes(updated.getMinutes() + minutes);
+  return updated;
+}
+
+function addMilliseconds(date: Date, milliseconds: number) {
+  return new Date(date.getTime() + milliseconds);
+}
+
+function getBreakShift({
+  bracketMatches,
+  endsAt,
+  fixtures,
+  startsAt,
+}: {
+  bracketMatches: Array<{ startsAt: Date }>;
+  endsAt: Date;
+  fixtures: Array<{ startsAt: Date }>;
+  startsAt: Date;
+}) {
+  const firstPlayableStart = [...fixtures, ...bracketMatches]
+    .filter((item) => item.startsAt >= startsAt)
+    .reduce<Date | null>((earliest, item) => {
+      if (!earliest || item.startsAt < earliest) {
+        return item.startsAt;
+      }
+
+      return earliest;
+    }, null);
+
+  if (!firstPlayableStart || firstPlayableStart >= endsAt) {
+    return null;
+  }
+
+  return {
+    from: firstPlayableStart,
+    milliseconds: endsAt.getTime() - firstPlayableStart.getTime(),
+  };
+}
+
+function assertBreakStartsBetweenGames({
+  bracketMatches,
+  fixtures,
+  gameMinutes,
+  startsAt,
+}: {
+  bracketMatches: Array<{ startsAt: Date }>;
+  fixtures: Array<{ startsAt: Date }>;
+  gameMinutes: number;
+  startsAt: Date;
+}) {
+  const overlappingItem = [...fixtures, ...bracketMatches].find((item) => {
+    const itemEndsAt = addMinutes(item.startsAt, gameMinutes);
+    return item.startsAt < startsAt && itemEndsAt > startsAt;
+  });
+
+  if (overlappingItem) {
+    throw new Error("Breaks must start between game slots, not during a game.");
+  }
+}
+
+function assertBreakDoesNotOverlapExistingBlocks({
+  blocks,
+  endsAt,
+  startsAt,
+}: {
+  blocks: Array<{ endsAt: Date; startsAt: Date }>;
+  endsAt: Date;
+  startsAt: Date;
+}) {
+  const overlappingBlock = blocks.find((block) => startsAt < block.endsAt && endsAt > block.startsAt);
+
+  if (overlappingBlock) {
+    throw new Error("This break overlaps an existing break. Remove or move the existing break first.");
+  }
 }
 
 function revalidateSchedulePages(slug: string) {
@@ -433,6 +770,7 @@ function mapTournamentView(record: {
   mvpMode: string;
   gameMinutes: number;
   slotGapMinutes: number;
+  schedulePublished: boolean;
   checkInAt: Date | null;
   winPoints: number;
   drawPoints: number;
@@ -456,6 +794,7 @@ function mapTournamentView(record: {
     pitches: record.pitches.map((pitch) => pitch.name),
     gameMinutes: record.gameMinutes,
     slotGapMinutes: record.slotGapMinutes,
+    schedulePublished: record.schedulePublished,
     checkInTime: record.checkInAt?.toISOString() ?? record.startsOn.toISOString(),
     points: {
       win: record.winPoints,

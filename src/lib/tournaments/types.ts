@@ -19,6 +19,7 @@ export type Tournament = {
   pitches: string[];
   gameMinutes: number;
   slotGapMinutes: number;
+  schedulePublished: boolean;
   checkInTime: string;
   points: {
     win: number;

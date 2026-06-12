@@ -29,22 +29,26 @@ export async function generateStaticParams() {
 export default async function TournamentPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   const { bracket, fixtures, mvpLeaders, scheduleBlocks, standings, teams, tournament: event } = await getTournamentBundle(slug);
-  const completedFixtures = fixtures.filter(isFixtureComplete);
+  const publicFixtures = event.schedulePublished ? fixtures : [];
+  const publicBracket = event.schedulePublished ? bracket : [];
+  const publicScheduleBlocks = event.schedulePublished ? scheduleBlocks : [];
+  const publicStandings = event.schedulePublished ? standings : [];
+  const completedFixtures = publicFixtures.filter(isFixtureComplete);
   const results = [...completedFixtures]
     .sort((a, b) => new Date(b.startsAt).getTime() - new Date(a.startsAt).getTime())
     .slice(0, 4);
-  const nextFixture = fixtures.find((fixture) => !isFixtureComplete(fixture));
-  const placementFixtures = fixtures.filter((fixture) =>
+  const nextFixture = publicFixtures.find((fixture) => !isFixtureComplete(fixture));
+  const placementFixtures = publicFixtures.filter((fixture) =>
     fixture.stage === "final" || fixture.stage === "third-place" || fixture.stage === "fifth-place"
   );
-  const groupFixtures = fixtures.filter((fixture) => fixture.stage === "group");
+  const groupFixtures = publicFixtures.filter((fixture) => fixture.stage === "group");
   const roundRobinComplete =
     groupFixtures.length > 0 && groupFixtures.every((fixture) => isFixtureComplete(fixture));
-  const finalPlacements = getFinalPlacements(standings, placementFixtures, teams);
+  const finalPlacements = getFinalPlacements(publicStandings, placementFixtures, teams);
   const hasFinalPlacements = finalPlacements.length > 0;
-  const leader = standings[0];
+  const leader = publicStandings[0];
   const winner = finalPlacements[0];
-  const scheduleItemCount = fixtures.length + scheduleBlocks.length + (placementFixtures.length > 0 ? 0 : bracket.length);
+  const scheduleItemCount = publicFixtures.length + publicScheduleBlocks.length + (placementFixtures.length > 0 ? 0 : publicBracket.length);
 
   return (
     <main className="min-h-screen bg-[#f7f7f2] text-slate-950">
@@ -83,16 +87,26 @@ export default async function TournamentPage({ params }: { params: Promise<{ slu
             <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
               <div>
                 <h2 className="text-xl font-bold">Full Day Schedule</h2>
-                <p className="text-sm text-slate-600">Games, breaks, and planned playoff slots.</p>
+                <p className="text-sm text-slate-600">
+                  {event.schedulePublished
+                    ? "Games, breaks, and planned playoff slots."
+                    : "The tournament schedule is being finalised."}
+                </p>
               </div>
               <span className="text-sm font-bold text-slate-500">{scheduleItemCount} items</span>
             </div>
-            <FullDaySchedule
-              bracket={placementFixtures.length > 0 ? [] : bracket}
-              fixtures={fixtures}
-              scheduleBlocks={scheduleBlocks}
-              teams={teams}
-            />
+            {event.schedulePublished ? (
+              <FullDaySchedule
+                bracket={placementFixtures.length > 0 ? [] : publicBracket}
+                fixtures={publicFixtures}
+                scheduleBlocks={publicScheduleBlocks}
+                teams={teams}
+              />
+            ) : (
+              <p className="mt-4 rounded-lg border border-dashed border-slate-300 bg-slate-50 px-4 py-8 text-center text-sm font-medium text-slate-600">
+                Schedule will appear here once confirmed.
+              </p>
+            )}
           </section>
 
           {roundRobinComplete ? (
@@ -105,7 +119,7 @@ export default async function TournamentPage({ params }: { params: Promise<{ slu
             <h2 className="text-lg font-bold">At a Glance</h2>
             <div className="mt-4 grid gap-3">
               <SnapshotCard icon={Users} label="Teams" value={`${teams.length}`} />
-              <SnapshotCard icon={ListChecks} label="Results" value={`${completedFixtures.length}/${fixtures.length}`} />
+              <SnapshotCard icon={ListChecks} label="Results" value={`${completedFixtures.length}/${publicFixtures.length}`} />
               <SnapshotCard
                 icon={Clock}
                 label="Next up"
@@ -127,7 +141,7 @@ export default async function TournamentPage({ params }: { params: Promise<{ slu
               {hasFinalPlacements ? (
                 <FinalPlacementsList placements={finalPlacements} />
               ) : (
-                <StandingsTable rows={standings} compact />
+                <StandingsTable rows={publicStandings} compact />
               )}
             </div>
           </section>

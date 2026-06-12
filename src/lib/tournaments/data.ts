@@ -216,6 +216,7 @@ export function mapTournament(
     pitches: record.pitches?.map((pitch) => pitch.name) ?? [],
     gameMinutes: record.gameMinutes,
     slotGapMinutes: record.slotGapMinutes,
+    schedulePublished: record.schedulePublished,
     checkInTime: record.checkInAt?.toISOString() ?? record.startsOn.toISOString(),
     points: {
       win: record.winPoints,

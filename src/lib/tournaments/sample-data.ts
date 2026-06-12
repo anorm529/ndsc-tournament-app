@@ -16,6 +16,7 @@ export const tournament: Tournament = {
   pitches: ["Diamond 1", "Diamond 2"],
   gameMinutes: 45,
   slotGapMinutes: 0,
+  schedulePublished: true,
   checkInTime: "2026-08-22T08:45:00.000Z",
   points: {
     win: 3,
@@ -202,6 +203,7 @@ export const tournaments: Tournament[] = [
     pitches: ["Diamond 1", "Diamond 2", "Diamond 3"],
     gameMinutes: 40,
     slotGapMinutes: 10,
+    schedulePublished: false,
     checkInTime: "2026-09-12T08:30:00.000Z",
     points: {
       win: 3,

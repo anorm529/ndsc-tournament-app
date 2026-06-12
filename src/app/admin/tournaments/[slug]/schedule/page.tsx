@@ -1,19 +1,22 @@
-import { CalendarPlus, Trash2 } from "lucide-react";
+import { CalendarPlus, RotateCcw, Save, Send, Trash2, Undo2 } from "lucide-react";
 
-import { ActionForm, ConfirmSubmitButton } from "@/components/admin/action-form";
+import { ActionForm, ConfirmSubmitButton, SubmitButton } from "@/components/admin/action-form";
 import { ButtonShell, PageHeader, Panel } from "@/components/admin/admin-ui";
-import { FixtureCard } from "@/components/tournaments/fixture-card";
 import { getTournamentBundle } from "@/lib/tournaments/data";
 import { formatTime } from "@/lib/tournaments/format";
 import { generateRoundRobinSchedule } from "@/lib/tournaments/scheduler";
 import { BracketMatch, Fixture, ScheduleBlock, Team } from "@/lib/tournaments/types";
-import { groupFixturesBySlot } from "@/lib/tournaments/view-model";
+import { groupFixturesBySlot, isFixtureComplete, teamName } from "@/lib/tournaments/view-model";
 import {
   addScheduleBlock,
+  deleteSchedule,
   deleteScheduleBlock,
-  generatePlacementSchedule,
   generatePlannedPlayoffs,
   generateSchedule,
+  publishSchedule,
+  unpublishSchedule,
+  updateFixtureSchedule,
+  updatePlannedPlayoffSlot,
 } from "@/app/admin/schedule/actions";
 
 export const dynamic = "force-dynamic";
@@ -25,7 +28,6 @@ export default async function AdminTournamentSchedulePage({
 }) {
   const { slug } = await params;
   const { bracket, fixtures, scheduleBlocks, standings, teams, tournament } = await getTournamentBundle(slug);
-  const groupFixtures = fixtures.filter((fixture) => fixture.stage === "group");
   const placementFixtures = fixtures.filter((fixture) =>
     fixture.stage === "final" || fixture.stage === "third-place" || fixture.stage === "fifth-place"
   );
@@ -39,10 +41,6 @@ export default async function AdminTournamentSchedulePage({
   const placementFirstPitchValue = toDatetimeLocalInput(getNextFixtureSlot(fixtures, tournament.gameMinutes + tournament.slotGapMinutes, tournament.checkInTime));
   const plannedPlayoffFirstPitchValue = placementFirstPitchValue;
   const lunchStartsAtValue = toDatetimeLocalInput(getLunchSlot(fixtures, tournament.checkInTime));
-  const completedGroupFixtures = groupFixtures.filter(
-    (fixture) => fixture.homeRuns !== undefined && fixture.awayRuns !== undefined,
-  );
-  const canGeneratePlacement = teams.length >= 4 && groupFixtures.length > 0 && completedGroupFixtures.length === groupFixtures.length;
 
   return (
     <div className="space-y-5">
@@ -50,6 +48,45 @@ export default async function AdminTournamentSchedulePage({
         title="Schedule"
         description="Generate and review round-robin fixtures from teams, pitches, and game duration."
       />
+      <Panel title="Schedule Status">
+        <div className="grid gap-4 lg:grid-cols-[1fr_auto] lg:items-center">
+          <div className="grid gap-3 sm:grid-cols-3">
+            <Field label="Public schedule" value={tournament.schedulePublished ? "Published" : "Draft"} />
+            <Field label="Matches" value={`${fixtures.length}`} />
+            <Field label="Breaks / playoff slots" value={`${scheduleBlocks.length + bracket.length}`} />
+          </div>
+          <div className="flex flex-wrap gap-2 lg:justify-end">
+            {tournament.schedulePublished ? (
+              <ActionForm action={unpublishSchedule}>
+                <input name="tournamentId" type="hidden" value={tournament.id} />
+                <SubmitButton className="inline-flex h-10 items-center justify-center gap-2 rounded-md border border-slate-300 bg-white px-4 text-sm font-semibold text-slate-800 transition hover:bg-slate-50">
+                  <Undo2 size={16} /> Move to draft
+                </SubmitButton>
+              </ActionForm>
+            ) : (
+              <ActionForm action={publishSchedule}>
+                <input name="tournamentId" type="hidden" value={tournament.id} />
+                <SubmitButton className="inline-flex h-10 items-center justify-center gap-2 rounded-md bg-rose-700 px-4 text-sm font-semibold text-white transition hover:bg-rose-800">
+                  <Send size={16} /> Publish schedule
+                </SubmitButton>
+              </ActionForm>
+            )}
+            <ActionForm action={deleteSchedule}>
+              <input name="tournamentId" type="hidden" value={tournament.id} />
+              <ConfirmSubmitButton
+                className="inline-flex h-10 items-center justify-center gap-2 rounded-md border border-rose-200 bg-rose-50 px-4 text-sm font-semibold text-rose-800 transition hover:bg-rose-100 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400"
+                confirmMessage="Delete all matches, planned playoff slots, breaks, scores, and MVP votes for this tournament?"
+                pendingChildren="Deleting..."
+              >
+                <RotateCcw size={16} /> Delete schedule
+              </ConfirmSubmitButton>
+            </ActionForm>
+          </div>
+        </div>
+        <p className="mt-4 text-sm text-slate-600">
+          Generate and edit the schedule as a draft. Publish it when the day plan is ready for the public tournament page.
+        </p>
+      </Panel>
       <Panel title="Generation Settings">
         <ActionForm action={generateSchedule} className="grid gap-4 lg:grid-cols-[1fr_1fr_1fr_1.2fr_auto] lg:items-end">
           <input name="tournamentId" type="hidden" value={tournament.id} />
@@ -76,43 +113,11 @@ export default async function AdminTournamentSchedulePage({
           </div>
         </ActionForm>
       </Panel>
-      <Panel title="Placement Playoffs">
-        <ActionForm action={generatePlacementSchedule} className="grid gap-4 lg:grid-cols-[1fr_1fr_1fr_1.2fr_auto] lg:items-end">
-          <input name="tournamentId" type="hidden" value={tournament.id} />
-          <Field label="Status" value={canGeneratePlacement ? "Ready" : "Needs group results"} />
-          <Field label="Pairings" value={getPlacementPreview(standings.length)} />
-          <Field label="Existing" value={`${placementFixtures.length} games`} />
-          <label className="block">
-            <span className="text-xs font-semibold uppercase text-slate-500">Playoff first pitch</span>
-            <input
-              className="mt-1 h-11 w-full rounded-md border border-slate-300 px-3 text-sm font-medium"
-              defaultValue={placementFirstPitchValue}
-              name="placementFirstPitch"
-              required
-              type="datetime-local"
-            />
-          </label>
-          <div className="space-y-3">
-            <label className="flex items-center gap-2 text-sm font-medium text-slate-700">
-              <input className="size-4 rounded border-slate-300" name="includeFifthPlaceGame" type="checkbox" />
-              Add 5th v 6th
-            </label>
-            <label className="flex items-center gap-2 text-sm font-medium text-slate-700">
-              <input className="size-4 rounded border-slate-300" name="replaceExistingPlacement" type="checkbox" />
-              Replace existing
-            </label>
-            <ButtonShell><CalendarPlus size={16} /> Generate playoffs</ButtonShell>
-          </div>
-        </ActionForm>
-        <p className="mt-4 text-sm text-slate-600">
-          NDSC placement games use the round-robin table: 1st v 2nd for the title, 3rd v 4th for third place, and optionally 5th v 6th when a third pitch is available.
-        </p>
-      </Panel>
-      <Panel title="Plan Playoff Slots">
+      <Panel title="Placement Playoff Slots">
         <ActionForm action={generatePlannedPlayoffs} className="grid gap-4 lg:grid-cols-[1fr_1fr_1fr_auto] lg:items-end">
           <input name="tournamentId" type="hidden" value={tournament.id} />
-          <Field label="Creates" value="1v2, 3v4, optional 5v6" />
-          <Field label="Teams needed" value="Not yet" />
+          <Field label="Creates" value={getPlacementPreview(standings.length)} />
+          <Field label="Existing slots" value={`${bracket.length}`} />
           <label className="block">
             <span className="text-xs font-semibold uppercase text-slate-500">Playoff slot time</span>
             <input
@@ -132,11 +137,11 @@ export default async function AdminTournamentSchedulePage({
               <input className="size-4 rounded border-slate-300" name="replaceExistingPlannedPlayoffs" type="checkbox" />
               Replace existing
             </label>
-            <ButtonShell><CalendarPlus size={16} /> Plan playoffs</ButtonShell>
+            <ButtonShell><CalendarPlus size={16} /> Plan slots</ButtonShell>
           </div>
         </ActionForm>
         <p className="mt-4 text-sm text-slate-600">
-          Use this before the tournament starts when you want the public schedule to show the full day, even before playoff teams are known.
+          Use this before the tournament starts to reserve the final placement games in the day plan. Once every round-robin score is entered, these slots are filled automatically from the standings: 1st v 2nd, 3rd v 4th, and optionally 5th v 6th.
         </p>
       </Panel>
       <Panel title="Breaks and Lunch">
@@ -179,6 +184,7 @@ export default async function AdminTournamentSchedulePage({
         <DayPlan
           bracket={placementFixtures.length > 0 ? [] : bracket}
           fixtures={fixtures}
+          pitches={tournament.pitches}
           scheduleBlocks={scheduleBlocks}
           teams={teams}
         />
@@ -191,7 +197,7 @@ export default async function AdminTournamentSchedulePage({
                 <p className="mb-2 text-sm font-bold text-slate-600">{formatTime(startsAt)}</p>
                 <div className="grid gap-3 lg:grid-cols-2">
                   {slotFixtures.map((fixture) => (
-                    <FixtureCard key={fixture.id} fixture={fixture} teams={teams} />
+                    <EditableFixtureCard key={fixture.id} fixture={fixture} pitches={tournament.pitches} teams={teams} />
                   ))}
                 </div>
               </div>
@@ -208,11 +214,13 @@ export default async function AdminTournamentSchedulePage({
 function DayPlan({
   bracket,
   fixtures,
+  pitches,
   scheduleBlocks,
   teams,
 }: {
   bracket: BracketMatch[];
   fixtures: Fixture[];
+  pitches: string[];
   scheduleBlocks: ScheduleBlock[];
   teams: Team[];
 }) {
@@ -245,11 +253,11 @@ function DayPlan({
     <div className="space-y-3">
       {items.map((item) => {
         if (item.type === "fixture") {
-          return <FixtureCard key={item.id} fixture={item.fixture} teams={teams} />;
+          return <EditableFixtureCard key={item.id} fixture={item.fixture} pitches={pitches} teams={teams} />;
         }
 
         if (item.type === "bracket") {
-          return <PlannedPlayoffCard key={item.id} match={item.match} />;
+          return <PlannedPlayoffCard key={item.id} match={item.match} pitches={pitches} />;
         }
 
         return <ScheduleBlockCard key={item.id} block={item.block} />;
@@ -258,19 +266,122 @@ function DayPlan({
   );
 }
 
-function PlannedPlayoffCard({ match }: { match: BracketMatch }) {
+function EditableFixtureCard({
+  fixture,
+  pitches,
+  teams,
+}: {
+  fixture: Fixture;
+  pitches: string[];
+  teams: Team[];
+}) {
+  const complete = isFixtureComplete(fixture);
+
   return (
-    <article className="rounded-md border border-rose-200 bg-rose-50 p-4">
-      <div className="flex items-center justify-between gap-3 text-xs font-bold uppercase text-rose-700">
-        <span>{formatTime(match.startsAt)}</span>
-        <span>{match.pitch}</span>
+    <article className="rounded-md border border-slate-200 bg-white p-4 shadow-sm">
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-2 text-xs font-bold uppercase text-slate-500">
+            <span>{formatTime(fixture.startsAt)}</span>
+            <span>{getFixtureStageLabel(fixture.stage)} - {fixture.pitch}</span>
+            {complete ? <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-emerald-800">Scored</span> : null}
+          </div>
+          <p className="mt-2 text-base font-black text-slate-950">
+            {teamName(teams, fixture.homeTeamId)} vs {teamName(teams, fixture.awayTeamId)}
+          </p>
+        </div>
+        <ActionForm action={updateFixtureSchedule} className="grid gap-2 sm:grid-cols-[180px_150px_auto] sm:items-end">
+          <input name="fixtureId" type="hidden" value={fixture.id} />
+          <label className="block">
+            <span className="text-[11px] font-bold uppercase text-slate-500">Time</span>
+            <input
+              className="mt-1 h-10 w-full rounded-md border border-slate-300 px-3 text-sm font-semibold"
+              defaultValue={toDatetimeLocalInput(fixture.startsAt)}
+              name="fixtureStartsAt"
+              required
+              type="datetime-local"
+            />
+          </label>
+          <label className="block">
+            <span className="text-[11px] font-bold uppercase text-slate-500">Pitch</span>
+            <select
+              className="mt-1 h-10 w-full rounded-md border border-slate-300 px-3 text-sm font-semibold"
+              defaultValue={fixture.pitch}
+              name="pitchName"
+              required
+            >
+              {pitches.map((pitch) => (
+                <option key={pitch} value={pitch}>{pitch}</option>
+              ))}
+            </select>
+          </label>
+          <SubmitButton className="inline-flex h-10 items-center justify-center gap-2 rounded-md bg-slate-950 px-3 text-sm font-semibold text-white transition hover:bg-slate-800">
+            <Save size={15} /> Save
+          </SubmitButton>
+        </ActionForm>
       </div>
-      <p className="mt-3 text-base font-black text-rose-950">{match.label}</p>
-      <p className="mt-1 text-sm font-semibold text-rose-900">
-        {match.homeSeed} vs {match.awaySeed}
-      </p>
     </article>
   );
+}
+
+function PlannedPlayoffCard({ match, pitches }: { match: BracketMatch; pitches: string[] }) {
+  return (
+    <article className="rounded-md border border-rose-200 bg-rose-50 p-4">
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+        <div>
+          <div className="flex items-center gap-3 text-xs font-bold uppercase text-rose-700">
+            <span>{formatTime(match.startsAt)}</span>
+            <span>{match.pitch}</span>
+          </div>
+          <p className="mt-3 text-base font-black text-rose-950">{match.label}</p>
+          <p className="mt-1 text-sm font-semibold text-rose-900">
+            {match.homeSeed} vs {match.awaySeed}
+          </p>
+        </div>
+        <ActionForm action={updatePlannedPlayoffSlot} className="grid gap-2 sm:grid-cols-[180px_150px_auto] sm:items-end">
+          <input name="matchId" type="hidden" value={match.id} />
+          <label className="block">
+            <span className="text-[11px] font-bold uppercase text-rose-700">Time</span>
+            <input
+              className="mt-1 h-10 w-full rounded-md border border-rose-200 bg-white px-3 text-sm font-semibold"
+              defaultValue={toDatetimeLocalInput(match.startsAt)}
+              name="matchStartsAt"
+              required
+              type="datetime-local"
+            />
+          </label>
+          <label className="block">
+            <span className="text-[11px] font-bold uppercase text-rose-700">Pitch</span>
+            <select
+              className="mt-1 h-10 w-full rounded-md border border-rose-200 bg-white px-3 text-sm font-semibold"
+              defaultValue={match.pitch}
+              name="pitchName"
+              required
+            >
+              {pitches.map((pitch) => (
+                <option key={pitch} value={pitch}>{pitch}</option>
+              ))}
+            </select>
+          </label>
+          <SubmitButton className="inline-flex h-10 items-center justify-center gap-2 rounded-md bg-rose-700 px-3 text-sm font-semibold text-white transition hover:bg-rose-800">
+            <Save size={15} /> Save
+          </SubmitButton>
+        </ActionForm>
+      </div>
+    </article>
+  );
+}
+
+function getFixtureStageLabel(stage: Fixture["stage"]) {
+  const labels: Record<Fixture["stage"], string> = {
+    "fifth-place": "5th place",
+    final: "Final",
+    group: "Group",
+    "semi-final": "Semi-final",
+    "third-place": "3rd place",
+  };
+
+  return labels[stage];
 }
 
 function ScheduleBlockCard({ block }: { block: ScheduleBlock }) {

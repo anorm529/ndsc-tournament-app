@@ -21,6 +21,7 @@ model Tournament {
   mvpMode       String   @default("overall") @map("mvp_mode")
   gameMinutes   Int       @default(45) @map("game_minutes")
   slotGapMinutes Int      @default(0) @map("slot_gap_minutes")
+  schedulePublished Boolean @default(false) @map("schedule_published")
   checkInAt     DateTime? @map("check_in_at")
   winPoints     Int       @default(3) @map("win_points")
   drawPoints    Int       @default(1) @map("draw_points")

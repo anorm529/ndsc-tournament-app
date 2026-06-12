@@ -351,6 +351,7 @@ function mapTournamentView(record: {
   mvpMode: string;
   gameMinutes: number;
   slotGapMinutes: number;
+  schedulePublished: boolean;
   checkInAt: Date | null;
   winPoints: number;
   drawPoints: number;
@@ -374,6 +375,7 @@ function mapTournamentView(record: {
     pitches: record.pitches.map((pitch) => pitch.name),
     gameMinutes: record.gameMinutes,
     slotGapMinutes: record.slotGapMinutes,
+    schedulePublished: record.schedulePublished,
     checkInTime: record.checkInAt?.toISOString() ?? record.startsOn.toISOString(),
     points: {
       win: record.winPoints,
