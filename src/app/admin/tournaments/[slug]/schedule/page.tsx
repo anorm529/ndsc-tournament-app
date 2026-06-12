@@ -176,7 +176,12 @@ export default async function AdminTournamentSchedulePage({
         </ActionForm>
       </Panel>
       <Panel title="Full Day Plan">
-        <DayPlan bracket={bracket} fixtures={fixtures} scheduleBlocks={scheduleBlocks} teams={teams} />
+        <DayPlan
+          bracket={placementFixtures.length > 0 ? [] : bracket}
+          fixtures={fixtures}
+          scheduleBlocks={scheduleBlocks}
+          teams={teams}
+        />
       </Panel>
       <Panel title="Current Schedule">
         {fixtures.length > 0 ? (
