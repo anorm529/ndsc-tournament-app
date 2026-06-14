@@ -166,10 +166,11 @@ function readTournamentForm(formData: FormData) {
     "public",
     "internal",
   ]);
-  const mvpMode = requireOption<Tournament["mvpMode"]>(formData, "mvpMode", [
+  const submittedMvpMode = requireOption<Tournament["mvpMode"]>(formData, "mvpMode", [
     "overall",
     "gendered",
   ]);
+  const mvpMode = tournamentType === "internal" ? "gendered" : submittedMvpMode;
   const status = requireOption<Tournament["status"]>(formData, "status", [
     "draft",
     "published",

@@ -9,9 +9,12 @@ export const dynamic = "force-dynamic";
 export default async function InternalSeasonPage() {
   const season = await getInternalSeasonLeaderboard();
   const champion = season.teamRows[0];
-  const overallMvp = season.mvpRows.find((row) => row.category === "overall") ?? season.mvpRows[0];
-  const maleMvp = season.mvpRows.find((row) => row.category === "male");
-  const femaleMvp = season.mvpRows.find((row) => row.category === "female");
+  const maleMvpRows = season.mvpRows.filter((row) => row.category === "male");
+  const femaleMvpRows = season.mvpRows.filter((row) => row.category === "female");
+  const topMvp = [...maleMvpRows, ...femaleMvpRows].sort((a, b) => {
+    if (b.votes !== a.votes) return b.votes - a.votes;
+    return a.playerName.localeCompare(b.playerName);
+  })[0];
 
   return (
     <main className="min-h-screen bg-[#f8fafc]">
@@ -34,7 +37,7 @@ export default async function InternalSeasonPage() {
             </div>
             <div className="grid gap-3 rounded-lg border border-slate-200 bg-slate-50 p-4">
               <Stat icon={Trophy} label="Current leader" value={champion?.teamName ?? "TBC"} />
-              <Stat icon={Medal} label="Top MVP" value={overallMvp?.playerName ?? "TBC"} />
+              <Stat icon={Medal} label="Top MVP" value={topMvp?.playerName ?? "TBC"} />
               <Stat icon={CalendarDays} label="Events" value={`${season.tournaments.length}`} />
             </div>
           </div>
@@ -114,9 +117,8 @@ export default async function InternalSeasonPage() {
         </div>
 
         <aside className="space-y-5 lg:sticky lg:top-5 lg:self-start">
-          <MvpPanel title="Overall MVP" rows={season.mvpRows.filter((row) => row.category === "overall").slice(0, 8)} />
-          <MvpPanel title="Male MVP" rows={maleMvp ? season.mvpRows.filter((row) => row.category === "male").slice(0, 8) : []} />
-          <MvpPanel title="Female MVP" rows={femaleMvp ? season.mvpRows.filter((row) => row.category === "female").slice(0, 8) : []} />
+          <MvpPanel title="Male MVP" rows={maleMvpRows.slice(0, 8)} />
+          <MvpPanel title="Female MVP" rows={femaleMvpRows.slice(0, 8)} />
         </aside>
       </section>
     </main>
