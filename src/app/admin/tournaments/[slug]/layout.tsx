@@ -1,22 +1,49 @@
 import Link from "next/link";
 import {
+  Archive,
   CalendarDays,
   ClipboardList,
+  FileDown,
+  History,
   LayoutDashboard,
+  MonitorUp,
   Settings,
+  ShieldCheck,
   Table2,
+  UserCheck,
   Users,
 } from "lucide-react";
 
 import { getTournamentBundle } from "@/lib/tournaments/data";
 
-const navItems = [
-  { segment: "", label: "Dashboard", icon: LayoutDashboard },
-  { segment: "teams", label: "Teams", icon: Users },
-  { segment: "schedule", label: "Schedule", icon: CalendarDays },
-  { segment: "results", label: "Results", icon: ClipboardList },
-  { segment: "standings", label: "Standings", icon: Table2 },
-  { segment: "settings", label: "Settings", icon: Settings },
+const navGroups = [
+  {
+    label: "Tournament",
+    items: [
+      { segment: "", label: "Dashboard", icon: LayoutDashboard },
+      { segment: "teams", label: "Teams", icon: Users },
+      { segment: "schedule", label: "Schedule", icon: CalendarDays },
+      { segment: "results", label: "Results", icon: ClipboardList },
+      { segment: "standings", label: "Standings", icon: Table2 },
+    ],
+  },
+  {
+    label: "Operations",
+    items: [
+      { segment: "check-in", label: "Check-in", icon: ShieldCheck },
+      { segment: "umpires", label: "Umpires", icon: UserCheck },
+      { segment: "live", label: "Live display", icon: MonitorUp },
+    ],
+  },
+  {
+    label: "Admin",
+    items: [
+      { segment: "templates", label: "Templates", icon: Archive },
+      { segment: "exports", label: "Exports", icon: FileDown },
+      { segment: "audit", label: "Audit", icon: History },
+      { segment: "settings", label: "Settings", icon: Settings },
+    ],
+  },
 ];
 
 export default async function AdminTournamentLayout({
@@ -56,22 +83,29 @@ export default async function AdminTournamentLayout({
       </section>
 
       <div className="grid gap-5 lg:grid-cols-[220px_1fr]">
-        <nav className="flex gap-2 overflow-x-auto rounded-lg border border-slate-200 bg-white p-2 lg:block lg:space-y-1">
-          {navItems.map((item) => {
-            const Icon = item.icon;
-            const href = item.segment ? `${baseHref}/${item.segment}` : baseHref;
+        <nav className="flex gap-3 overflow-x-auto rounded-lg border border-slate-200 bg-white p-2 lg:block lg:space-y-4">
+          {navGroups.map((group) => (
+            <div key={group.label} className="flex shrink-0 gap-2 lg:block lg:space-y-1">
+              <p className="hidden px-3 text-[0.68rem] font-bold uppercase tracking-[0.14em] text-slate-400 lg:block">
+                {group.label}
+              </p>
+              {group.items.map((item) => {
+                const Icon = item.icon;
+                const href = item.segment ? `${baseHref}/${item.segment}` : baseHref;
 
-            return (
-              <Link
-                key={item.segment || "dashboard"}
-                href={href}
-                className="flex h-10 shrink-0 items-center gap-2 rounded-md px-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-100 hover:text-slate-950"
-              >
-                <Icon size={16} />
-                {item.label}
-              </Link>
-            );
-          })}
+                return (
+                  <Link
+                    key={item.segment || "dashboard"}
+                    href={href}
+                    className="flex h-10 shrink-0 items-center gap-2 rounded-md px-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-100 hover:text-slate-950"
+                  >
+                    <Icon size={16} />
+                    {item.label}
+                  </Link>
+                );
+              })}
+            </div>
+          ))}
         </nav>
         <main>{children}</main>
       </div>

@@ -54,18 +54,18 @@ export default async function TournamentPage({ params }: { params: Promise<{ slu
   return (
     <main className="min-h-screen bg-[#f7f7f2] text-slate-950">
       <AutoRefresh enabled={event.status !== "complete"} intervalMs={10000} />
-      <section className="bg-rose-700 text-white">
+      <section className="text-white" style={{ backgroundColor: event.brandPrimary }}>
         <div className="mx-auto max-w-5xl px-5 py-6 sm:px-6 lg:py-8">
           <Link href="/" className="inline-flex items-center gap-2 text-sm font-semibold text-rose-100 hover:text-white">
             <ArrowLeft size={16} /> All tournaments
           </Link>
           <div className="mt-7">
             <div>
-              <p className="inline-flex rounded-full bg-white/15 px-3 py-1 text-xs font-bold uppercase tracking-[0.14em] text-rose-50">
+              <p className="inline-flex rounded-full bg-white/15 px-3 py-1 text-xs font-bold uppercase tracking-[0.14em] text-white">
                 {event.status} tournament
               </p>
               <h1 className="mt-2 text-4xl font-black tracking-tight sm:text-5xl">{event.name}</h1>
-              <p className="mt-3 max-w-2xl text-base leading-7 text-rose-50 sm:text-lg">
+              <p className="mt-3 max-w-2xl text-base leading-7 text-white/90 sm:text-lg">
                 Schedule, live standings, results, playoffs, and MVP leaders for the club tournament day.
               </p>
             </div>

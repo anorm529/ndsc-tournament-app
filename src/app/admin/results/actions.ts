@@ -143,6 +143,14 @@ export async function updateFixtureScores(_state: ActionState, formData: FormDat
     });
 
     const plannedFixturesCreated = await materializePlannedPlayoffs(tournament.id);
+    await prisma.auditLog.create({
+      data: {
+        tournamentId: tournament.id,
+        entityType: "fixture",
+        action: "score_update",
+        summary: `${activeFixtureIds.length} fixture score${activeFixtureIds.length === 1 ? "" : "s"} or MVP vote set${activeFixtureIds.length === 1 ? "" : "s"} were saved.`,
+      },
+    });
 
     const adminBase = `/admin/tournaments/${tournament.slug}`;
 
@@ -442,6 +450,8 @@ function mapTournamentView(record: {
   slotGapMinutes: number;
   schedulePublished: boolean;
   checkInAt: Date | null;
+  brandPrimary: string;
+  brandSecondary: string;
   winPoints: number;
   drawPoints: number;
   lossPoints: number;
@@ -466,6 +476,8 @@ function mapTournamentView(record: {
     slotGapMinutes: record.slotGapMinutes,
     schedulePublished: record.schedulePublished,
     checkInTime: record.checkInAt?.toISOString() ?? record.startsOn.toISOString(),
+    brandPrimary: record.brandPrimary,
+    brandSecondary: record.brandSecondary,
     points: {
       win: record.winPoints,
       draw: record.drawPoints,

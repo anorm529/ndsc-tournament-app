@@ -21,6 +21,8 @@ export type Tournament = {
   slotGapMinutes: number;
   schedulePublished: boolean;
   checkInTime: string;
+  brandPrimary: string;
+  brandSecondary: string;
   points: {
     win: number;
     draw: number;
@@ -37,6 +39,7 @@ export type Team = {
   colour: string;
   contactName?: string;
   contactEmail?: string;
+  checkedInAt?: string;
 };
 
 export type Player = {
@@ -57,6 +60,11 @@ export type Fixture = {
   stage: "group" | "semi-final" | "final" | "third-place" | "fifth-place";
   homeRuns?: number;
   awayRuns?: number;
+  umpires?: Array<{
+    id: string;
+    name: string;
+    role: string;
+  }>;
 };
 
 export type BracketMatch = {
@@ -125,6 +133,39 @@ export type InternalSeasonLeaderboard = {
   tournaments: TournamentCard[];
   teamRows: InternalSeasonTeamRow[];
   mvpRows: InternalSeasonMvpRow[];
+};
+
+export type Umpire = {
+  id: string;
+  tournamentId: string;
+  name: string;
+  email?: string;
+  phone?: string;
+  availabilityNote?: string;
+  defaultPitchId?: string;
+  defaultPitchName?: string;
+};
+
+export type TournamentTemplate = {
+  id: string;
+  name: string;
+  description?: string;
+  teamCount: number;
+  pitchCount: number;
+  format: TournamentFormat;
+  gameMinutes: number;
+  slotGapMinutes: number;
+  includeThirdPlace: boolean;
+  includeFifthPlace: boolean;
+};
+
+export type AuditLog = {
+  id: string;
+  entityType: string;
+  entityId?: string;
+  action: string;
+  summary: string;
+  createdAt: string;
 };
 
 export type Standing = {
