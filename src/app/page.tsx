@@ -68,6 +68,12 @@ export default async function Home() {
               <Star size={16} /> Internal league
             </Link>
             <Link
+              href="/archive"
+              className="inline-flex h-11 w-fit items-center justify-center gap-2 rounded-md border border-slate-300 bg-white px-4 text-sm font-semibold text-slate-800 transition hover:bg-slate-50"
+            >
+              <Trophy size={16} /> Archive
+            </Link>
+            <Link
               href="/admin"
               className="inline-flex h-11 w-fit items-center justify-center gap-2 rounded-md bg-slate-950 px-4 text-sm font-semibold text-white transition hover:bg-slate-800"
             >

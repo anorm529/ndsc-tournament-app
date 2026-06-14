@@ -184,6 +184,8 @@ function readTournamentForm(formData: FormData) {
   const winPoints = requireInteger(formData, "winPoints", 0);
   const drawPoints = requireInteger(formData, "drawPoints", 0);
   const lossPoints = requireInteger(formData, "lossPoints", 0);
+  const brandPrimary = requireText(formData, "brandPrimary");
+  const brandSecondary = requireText(formData, "brandSecondary");
   const announcements = readLines(formData, "announcements");
 
   return {
@@ -203,6 +205,8 @@ function readTournamentForm(formData: FormData) {
     winPoints,
     drawPoints,
     lossPoints,
+    brandPrimary,
+    brandSecondary,
     announcements,
   };
 }

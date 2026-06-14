@@ -27,6 +27,10 @@ export async function generateSchedule(_state: ActionState, formData: FormData) 
         teams: {
           orderBy: { name: "asc" },
         },
+        umpires: {
+          where: { defaultPitchId: { not: null } },
+          select: { id: true, defaultPitchId: true },
+        },
       },
     });
 
@@ -71,6 +75,8 @@ export async function generateSchedule(_state: ActionState, formData: FormData) 
         slotGapMinutes: tournament.slotGapMinutes,
         schedulePublished: tournament.schedulePublished,
         checkInTime: tournament.checkInAt?.toISOString() ?? tournament.startsOn.toISOString(),
+        brandPrimary: tournament.brandPrimary,
+        brandSecondary: tournament.brandSecondary,
         points: {
           win: tournament.winPoints,
           draw: tournament.drawPoints,
@@ -92,20 +98,20 @@ export async function generateSchedule(_state: ActionState, formData: FormData) 
       firstPitch: firstPitchDate.toISOString(),
     });
 
-    await prisma.$transaction([
-      prisma.tournament.update({
+    await prisma.$transaction(async (tx) => {
+      await tx.tournament.update({
         where: { id: tournament.id },
         data: { schedulePublished: false },
-      }),
-      prisma.fixture.deleteMany({
+      });
+      await tx.fixture.deleteMany({
         where: {
           tournamentId: tournament.id,
           stage: {
             in: ["group", "final", "third-place", "fifth-place"],
           },
         },
-      }),
-      prisma.fixture.createMany({
+      });
+      await tx.fixture.createMany({
         data: generatedFixtures.map((fixture) => ({
           tournamentId: tournament.id,
           round: fixture.round,
@@ -115,8 +121,29 @@ export async function generateSchedule(_state: ActionState, formData: FormData) 
           awayTeamId: fixture.awayTeamId,
           stage: "group",
         })),
-      }),
-    ]);
+      });
+
+      const createdFixtures = await tx.fixture.findMany({
+        where: { tournamentId: tournament.id, stage: "group" },
+        select: { id: true, pitchId: true },
+      });
+      const fixtureUmpires = createdFixtures.flatMap((fixture) =>
+        tournament.umpires
+          .filter((umpire) => umpire.defaultPitchId === fixture.pitchId)
+          .map((umpire) => ({
+            fixtureId: fixture.id,
+            umpireId: umpire.id,
+            role: "diamond",
+          })),
+      );
+
+      if (fixtureUmpires.length > 0) {
+        await tx.fixtureUmpire.createMany({
+          data: fixtureUmpires,
+          skipDuplicates: true,
+        });
+      }
+    });
 
     revalidateSchedulePages(tournament.slug);
     refresh();
@@ -846,6 +873,8 @@ function mapTournamentView(record: {
   slotGapMinutes: number;
   schedulePublished: boolean;
   checkInAt: Date | null;
+  brandPrimary: string;
+  brandSecondary: string;
   winPoints: number;
   drawPoints: number;
   lossPoints: number;
@@ -870,6 +899,8 @@ function mapTournamentView(record: {
     slotGapMinutes: record.slotGapMinutes,
     schedulePublished: record.schedulePublished,
     checkInTime: record.checkInAt?.toISOString() ?? record.startsOn.toISOString(),
+    brandPrimary: record.brandPrimary,
+    brandSecondary: record.brandSecondary,
     points: {
       win: record.winPoints,
       draw: record.drawPoints,

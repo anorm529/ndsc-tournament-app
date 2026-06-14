@@ -147,7 +147,13 @@ export async function getTournamentBundle(slug: string): Promise<TournamentBundl
         orderBy: [{ startsAt: "asc" }, { sortOrder: "asc" }],
       },
       fixtures: {
-        include: { pitch: true },
+        include: {
+          pitch: true,
+          umpireAssignments: {
+            include: { umpire: true },
+            orderBy: { createdAt: "asc" },
+          },
+        },
         orderBy: [{ startsAt: "asc" }, { pitch: { sortOrder: "asc" } }],
       },
       mvpVotes: {
@@ -218,6 +224,8 @@ export function mapTournament(
     slotGapMinutes: record.slotGapMinutes,
     schedulePublished: record.schedulePublished,
     checkInTime: record.checkInAt?.toISOString() ?? record.startsOn.toISOString(),
+    brandPrimary: record.brandPrimary,
+    brandSecondary: record.brandSecondary,
     points: {
       win: record.winPoints,
       draw: record.drawPoints,
@@ -235,6 +243,7 @@ function mapTeam(record: {
   colour: string;
   contactName: string | null;
   contactEmail: string | null;
+  checkedInAt: Date | null;
 }): Team {
   return {
     id: record.id,
@@ -244,6 +253,7 @@ function mapTeam(record: {
     colour: record.colour,
     contactName: record.contactName ?? undefined,
     contactEmail: record.contactEmail ?? undefined,
+    checkedInAt: record.checkedInAt?.toISOString(),
   };
 }
 
@@ -272,6 +282,13 @@ function mapFixture(record: {
   stage: string;
   homeRuns: number | null;
   awayRuns: number | null;
+  umpireAssignments?: Array<{
+    role: string;
+    umpire: {
+      id: string;
+      name: string;
+    };
+  }>;
 }): Fixture {
   return {
     id: record.id,
@@ -284,6 +301,11 @@ function mapFixture(record: {
     stage: record.stage as Fixture["stage"],
     homeRuns: record.homeRuns ?? undefined,
     awayRuns: record.awayRuns ?? undefined,
+    umpires: record.umpireAssignments?.map((assignment) => ({
+      id: assignment.umpire.id,
+      name: assignment.umpire.name,
+      role: assignment.role,
+    })) ?? [],
   };
 }
 

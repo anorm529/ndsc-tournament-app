@@ -7,35 +7,40 @@ datasource db {
 }
 
 model Tournament {
-  id            String    @id @default(uuid()) @db.Uuid
-  slug          String    @unique
-  name          String
-  startsOn      DateTime  @map("starts_on") @db.Date
-  endsOn        DateTime? @map("ends_on") @db.Date
-  venue         String
-  city          String
-  format        String
-  status        String    @default("draft")
-  tournamentType String   @default("public") @map("tournament_type")
-  seasonYear    Int      @default(2026) @map("season_year")
-  mvpMode       String   @default("overall") @map("mvp_mode")
-  gameMinutes   Int       @default(45) @map("game_minutes")
-  slotGapMinutes Int      @default(0) @map("slot_gap_minutes")
-  schedulePublished Boolean @default(false) @map("schedule_published")
-  checkInAt     DateTime? @map("check_in_at")
-  winPoints     Int       @default(3) @map("win_points")
-  drawPoints    Int       @default(1) @map("draw_points")
-  lossPoints    Int       @default(0) @map("loss_points")
-  announcements String[]  @default([])
-  createdAt     DateTime  @default(now()) @map("created_at")
-  updatedAt     DateTime  @updatedAt @map("updated_at")
+  id                String    @id @default(uuid()) @db.Uuid
+  slug              String    @unique
+  name              String
+  startsOn          DateTime  @map("starts_on") @db.Date
+  endsOn            DateTime? @map("ends_on") @db.Date
+  venue             String
+  city              String
+  format            String
+  status            String    @default("draft")
+  tournamentType    String    @default("public") @map("tournament_type")
+  seasonYear        Int       @default(2026) @map("season_year")
+  mvpMode           String    @default("overall") @map("mvp_mode")
+  gameMinutes       Int       @default(45) @map("game_minutes")
+  slotGapMinutes    Int       @default(0) @map("slot_gap_minutes")
+  schedulePublished Boolean   @default(false) @map("schedule_published")
+  checkInAt         DateTime? @map("check_in_at")
+  winPoints         Int       @default(3) @map("win_points")
+  drawPoints        Int       @default(1) @map("draw_points")
+  lossPoints        Int       @default(0) @map("loss_points")
+  brandPrimary      String    @default("#be123c") @map("brand_primary")
+  brandSecondary    String    @default("#0f172a") @map("brand_secondary")
+  announcements     String[]  @default([])
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @updatedAt @map("updated_at")
 
+  auditLogs      AuditLog[]
   bracketMatches BracketMatch[]
   fixtures       Fixture[]
   mvpVotes       MvpVote[]
   pitches        Pitch[]
   scheduleBlocks ScheduleBlock[]
   teams          Team[]
+  templates      TournamentTemplate[]
+  umpires        Umpire[]
 
   @@map("tournaments")
 }
@@ -62,30 +67,32 @@ model Pitch {
   name         String
   sortOrder    Int    @default(0) @map("sort_order")
 
-  tournament    Tournament     @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  tournament     Tournament     @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
   bracketMatches BracketMatch[]
-  fixtures      Fixture[]
+  fixtures       Fixture[]
+  umpires        Umpire[]
 
   @@unique([tournamentId, name])
   @@map("pitches")
 }
 
 model Team {
-  id           String   @id @default(uuid()) @db.Uuid
-  tournamentId String   @map("tournament_id") @db.Uuid
+  id           String    @id @default(uuid()) @db.Uuid
+  tournamentId String    @map("tournament_id") @db.Uuid
   name         String
-  shortName    String   @map("short_name")
-  colour       String   @default("#0f172a")
-  contactName  String?  @map("contact_name")
-  contactEmail String?  @map("contact_email")
-  createdAt    DateTime @default(now()) @map("created_at")
-  updatedAt    DateTime @updatedAt @map("updated_at")
+  shortName    String    @map("short_name")
+  colour       String    @default("#0f172a")
+  contactName  String?   @map("contact_name")
+  contactEmail String?   @map("contact_email")
+  checkedInAt  DateTime? @map("checked_in_at")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
 
-  tournament         Tournament    @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  tournament         Tournament     @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
   awayBracketMatches BracketMatch[] @relation("AwayBracketTeam")
-  awayFixtures       Fixture[]     @relation("AwayTeam")
+  awayFixtures       Fixture[]      @relation("AwayTeam")
   homeBracketMatches BracketMatch[] @relation("HomeBracketTeam")
-  homeFixtures       Fixture[]     @relation("HomeTeam")
+  homeFixtures       Fixture[]      @relation("HomeTeam")
   mvpVotes           MvpVote[]
   players            Player[]
 
@@ -122,11 +129,12 @@ model Fixture {
   createdAt    DateTime @default(now()) @map("created_at")
   updatedAt    DateTime @updatedAt @map("updated_at")
 
-  awayTeam   Team       @relation("AwayTeam", fields: [awayTeamId], references: [id], onDelete: Cascade)
-  homeTeam   Team       @relation("HomeTeam", fields: [homeTeamId], references: [id], onDelete: Cascade)
-  pitch      Pitch?     @relation(fields: [pitchId], references: [id], onDelete: SetNull)
-  tournament Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
-  mvpVotes   MvpVote[]
+  awayTeam          Team            @relation("AwayTeam", fields: [awayTeamId], references: [id], onDelete: Cascade)
+  homeTeam          Team            @relation("HomeTeam", fields: [homeTeamId], references: [id], onDelete: Cascade)
+  pitch             Pitch?          @relation(fields: [pitchId], references: [id], onDelete: SetNull)
+  tournament        Tournament      @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  mvpVotes          MvpVote[]
+  umpireAssignments FixtureUmpire[]
 
   @@index([awayTeamId])
   @@index([homeTeamId])
@@ -175,4 +183,77 @@ model BracketMatch {
   tournament Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
 
   @@map("bracket_matches")
+}
+
+model Umpire {
+  id               String   @id @default(uuid()) @db.Uuid
+  tournamentId     String   @map("tournament_id") @db.Uuid
+  name             String
+  email            String?
+  phone            String?
+  availabilityNote String?  @map("availability_note")
+  defaultPitchId   String?  @map("default_pitch_id") @db.Uuid
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  defaultPitch       Pitch?          @relation(fields: [defaultPitchId], references: [id], onDelete: SetNull)
+  fixtureAssignments FixtureUmpire[]
+  tournament         Tournament      @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+
+  @@unique([tournamentId, name])
+  @@index([defaultPitchId])
+  @@index([tournamentId])
+  @@map("umpires")
+}
+
+model FixtureUmpire {
+  id        String   @id @default(uuid()) @db.Uuid
+  fixtureId String   @map("fixture_id") @db.Uuid
+  umpireId  String   @map("umpire_id") @db.Uuid
+  role      String   @default("umpire")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  fixture Fixture @relation(fields: [fixtureId], references: [id], onDelete: Cascade)
+  umpire  Umpire  @relation(fields: [umpireId], references: [id], onDelete: Cascade)
+
+  @@unique([fixtureId, umpireId])
+  @@index([umpireId])
+  @@map("fixture_umpires")
+}
+
+model TournamentTemplate {
+  id                String   @id @default(uuid()) @db.Uuid
+  tournamentId      String?  @map("tournament_id") @db.Uuid
+  name              String
+  description       String?
+  teamCount         Int      @default(4) @map("team_count")
+  pitchCount        Int      @default(2) @map("pitch_count")
+  format            String   @default("round-robin-playoffs")
+  gameMinutes       Int      @default(45) @map("game_minutes")
+  slotGapMinutes    Int      @default(0) @map("slot_gap_minutes")
+  includeThirdPlace Boolean  @default(true) @map("include_third_place")
+  includeFifthPlace Boolean  @default(false) @map("include_fifth_place")
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+
+  tournament Tournament? @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+
+  @@unique([name])
+  @@index([tournamentId])
+  @@map("tournament_templates")
+}
+
+model AuditLog {
+  id           String   @id @default(uuid()) @db.Uuid
+  tournamentId String?  @map("tournament_id") @db.Uuid
+  entityType   String   @map("entity_type")
+  entityId     String?  @map("entity_id") @db.Uuid
+  action       String
+  summary      String
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  tournament Tournament? @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+
+  @@index([tournamentId, createdAt])
+  @@map("audit_logs")
 }

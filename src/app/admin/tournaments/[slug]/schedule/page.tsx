@@ -41,6 +41,7 @@ export default async function AdminTournamentSchedulePage({
   const placementFirstPitchValue = toDatetimeLocalInput(getNextFixtureSlot(fixtures, tournament.gameMinutes + tournament.slotGapMinutes, tournament.checkInTime));
   const plannedPlayoffFirstPitchValue = placementFirstPitchValue;
   const lunchStartsAtValue = toDatetimeLocalInput(getLunchSlot(fixtures, tournament.checkInTime));
+  const fairnessWarnings = getScheduleFairnessWarnings(fixtures, teams);
 
   return (
     <div className="space-y-5">
@@ -86,6 +87,21 @@ export default async function AdminTournamentSchedulePage({
         <p className="mt-4 text-sm text-slate-600">
           Generate and edit the schedule as a draft. Publish it when the day plan is ready for the public tournament page.
         </p>
+      </Panel>
+      <Panel title="Fairness Warnings">
+        {fairnessWarnings.length > 0 ? (
+          <ul className="space-y-2">
+            {fairnessWarnings.map((warning) => (
+              <li key={warning} className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm font-semibold text-amber-900">
+                {warning}
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm font-semibold text-emerald-800">
+            No obvious back-to-back or pitch-balance warnings.
+          </p>
+        )}
       </Panel>
       <Panel title="Generation Settings">
         <ActionForm action={generateSchedule} className="grid gap-4 lg:grid-cols-[1fr_1fr_1fr_1.2fr_auto] lg:items-end">
@@ -484,4 +500,52 @@ function getPlacementPreview(teamCount: number) {
   }
 
   return "Need 3 teams";
+}
+
+function getScheduleFairnessWarnings(fixtures: Fixture[], teams: Team[]) {
+  const warnings: string[] = [];
+  const groupFixtures = fixtures
+    .filter((fixture) => fixture.stage === "group")
+    .sort((a, b) => new Date(a.startsAt).getTime() - new Date(b.startsAt).getTime());
+  const teamFixtures = new Map<string, Fixture[]>();
+
+  for (const team of teams) {
+    teamFixtures.set(team.id, []);
+  }
+
+  for (const fixture of groupFixtures) {
+    teamFixtures.get(fixture.homeTeamId)?.push(fixture);
+    teamFixtures.get(fixture.awayTeamId)?.push(fixture);
+  }
+
+  for (const team of teams) {
+    const items = teamFixtures.get(team.id) ?? [];
+
+    for (let index = 1; index < items.length; index += 1) {
+      const previous = items[index - 1];
+      const current = items[index];
+
+      if (previous.startsAt === current.startsAt) {
+        warnings.push(`${team.name} is listed twice at ${formatTime(current.startsAt)}.`);
+      }
+
+      const gapMinutes = (new Date(current.startsAt).getTime() - new Date(previous.startsAt).getTime()) / 60000;
+
+      if (gapMinutes > 0 && gapMinutes <= 60) {
+        warnings.push(`${team.name} has back-to-back games around ${formatTime(previous.startsAt)} and ${formatTime(current.startsAt)}.`);
+      }
+    }
+  }
+
+  const pitchCounts = groupFixtures.reduce<Record<string, number>>((counts, fixture) => {
+    counts[fixture.pitch] = (counts[fixture.pitch] ?? 0) + 1;
+    return counts;
+  }, {});
+  const counts = Object.values(pitchCounts);
+
+  if (counts.length > 1 && Math.max(...counts) - Math.min(...counts) > 1) {
+    warnings.push("Pitch usage is uneven by more than one group game.");
+  }
+
+  return [...new Set(warnings)].slice(0, 8);
 }
