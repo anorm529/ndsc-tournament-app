@@ -29,7 +29,7 @@ export async function updateFixtureScores(_state: ActionState, formData: FormDat
         id: { in: uniqueFixtureIds },
         tournamentId: tournament.id,
       },
-      select: { awayTeamId: true, homeTeamId: true, id: true },
+      select: { awayRuns: true, awayTeamId: true, homeRuns: true, homeTeamId: true, id: true },
     });
     const validFixturesById = new Map(validFixtures.map((fixture) => [fixture.id, fixture]));
 
@@ -37,19 +37,85 @@ export async function updateFixtureScores(_state: ActionState, formData: FormDat
       throw new Error("One or more submitted fixtures do not belong to this tournament.");
     }
 
-    const updates = uniqueFixtureIds.flatMap((fixtureId) => {
+    const activeFixtureIds = uniqueFixtureIds.filter((fixtureId) => {
+      const fixture = validFixturesById.get(fixtureId);
+
+      if (!fixture) {
+        return false;
+      }
+
+      return hasScoreValue(formData, `homeRuns-${fixtureId}`) ||
+        hasScoreValue(formData, `awayRuns-${fixtureId}`) ||
+        fixture.homeRuns !== null ||
+        fixture.awayRuns !== null ||
+        hasSubmittedMvpValue(formData, fixtureId);
+    });
+
+    if (activeFixtureIds.length === 0) {
+      return successState("No scores or MVP votes were entered.");
+    }
+
+    const updates = activeFixtureIds.flatMap((fixtureId) => {
       const fixture = validFixturesById.get(fixtureId);
 
       if (!fixture) {
         throw new Error("One or more submitted fixtures do not belong to this tournament.");
       }
 
+      const scoreUpdate = prisma.fixture.update({
+        where: { id: fixtureId },
+        data: {
+          homeRuns: readOptionalScore(formData, `homeRuns-${fixtureId}`),
+          awayRuns: readOptionalScore(formData, `awayRuns-${fixtureId}`),
+        },
+      });
+
+      if (tournament.mvpMode === "gendered") {
+        return [
+          scoreUpdate,
+          writeMvpVote({
+            category: "male",
+            fixtureId,
+            key: `homeMvp-${fixtureId}-male`,
+            formData,
+            teamId: fixture.homeTeamId,
+            tournamentId: tournament.id,
+          }),
+          writeMvpVote({
+            category: "female",
+            fixtureId,
+            key: `homeMvp-${fixtureId}-female`,
+            formData,
+            teamId: fixture.homeTeamId,
+            tournamentId: tournament.id,
+          }),
+          writeMvpVote({
+            category: "male",
+            fixtureId,
+            key: `awayMvp-${fixtureId}-male`,
+            formData,
+            teamId: fixture.awayTeamId,
+            tournamentId: tournament.id,
+          }),
+          writeMvpVote({
+            category: "female",
+            fixtureId,
+            key: `awayMvp-${fixtureId}-female`,
+            formData,
+            teamId: fixture.awayTeamId,
+            tournamentId: tournament.id,
+          }),
+        ];
+      }
+
       return [
-        prisma.fixture.update({
-          where: { id: fixtureId },
-          data: {
-            homeRuns: readOptionalScore(formData, `homeRuns-${fixtureId}`),
-            awayRuns: readOptionalScore(formData, `awayRuns-${fixtureId}`),
+        scoreUpdate,
+        prisma.mvpVote.deleteMany({
+          where: {
+            category: {
+              in: ["male", "female"],
+            },
+            fixtureId,
           },
         }),
         writeMvpVote({
@@ -57,7 +123,6 @@ export async function updateFixtureScores(_state: ActionState, formData: FormDat
           fixtureId,
           key: `homeMvp-${fixtureId}-overall`,
           formData,
-          shouldDelete: tournament.mvpMode !== "overall",
           teamId: fixture.homeTeamId,
           tournamentId: tournament.id,
         }),
@@ -66,50 +131,16 @@ export async function updateFixtureScores(_state: ActionState, formData: FormDat
           fixtureId,
           key: `awayMvp-${fixtureId}-overall`,
           formData,
-          shouldDelete: tournament.mvpMode !== "overall",
-          teamId: fixture.awayTeamId,
-          tournamentId: tournament.id,
-        }),
-        writeMvpVote({
-          category: "male",
-          fixtureId,
-          key: `homeMvp-${fixtureId}-male`,
-          formData,
-          shouldDelete: tournament.mvpMode !== "gendered",
-          teamId: fixture.homeTeamId,
-          tournamentId: tournament.id,
-        }),
-        writeMvpVote({
-          category: "female",
-          fixtureId,
-          key: `homeMvp-${fixtureId}-female`,
-          formData,
-          shouldDelete: tournament.mvpMode !== "gendered",
-          teamId: fixture.homeTeamId,
-          tournamentId: tournament.id,
-        }),
-        writeMvpVote({
-          category: "male",
-          fixtureId,
-          key: `awayMvp-${fixtureId}-male`,
-          formData,
-          shouldDelete: tournament.mvpMode !== "gendered",
-          teamId: fixture.awayTeamId,
-          tournamentId: tournament.id,
-        }),
-        writeMvpVote({
-          category: "female",
-          fixtureId,
-          key: `awayMvp-${fixtureId}-female`,
-          formData,
-          shouldDelete: tournament.mvpMode !== "gendered",
           teamId: fixture.awayTeamId,
           tournamentId: tournament.id,
         }),
       ];
     });
 
-    await prisma.$transaction(updates);
+    await prisma.$transaction(updates, {
+      maxWait: 10_000,
+      timeout: 15_000,
+    });
 
     const plannedFixturesCreated = await materializePlannedPlayoffs(tournament.id);
 
@@ -133,6 +164,25 @@ export async function updateFixtureScores(_state: ActionState, formData: FormDat
   } catch (error) {
     return errorState(error);
   }
+}
+
+/*
+ * Keep this intentionally narrow: the results page submits every fixture on the
+ * page, but tournament day saves usually touch only the latest one or two games.
+ */
+function hasSubmittedMvpValue(formData: FormData, fixtureId: string) {
+  return [
+    `homeMvp-${fixtureId}-overall`,
+    `awayMvp-${fixtureId}-overall`,
+    `homeMvp-${fixtureId}-male`,
+    `homeMvp-${fixtureId}-female`,
+    `awayMvp-${fixtureId}-male`,
+    `awayMvp-${fixtureId}-female`,
+  ].some((key) => readString(formData, key).trim() !== "");
+}
+
+function hasScoreValue(formData: FormData, key: string) {
+  return readString(formData, key).trim() !== "";
 }
 
 export async function deleteMvpVote(_state: ActionState, formData: FormData) {
@@ -286,36 +336,42 @@ async function materializePlannedPlayoffs(tournamentId: string) {
     return 0;
   }
 
-  await prisma.$transaction([
-    prisma.fixture.deleteMany({
-      where: {
-        tournamentId: tournament.id,
-        stage: {
-          in: [...placementStages],
-        },
-      },
-    }),
-    prisma.fixture.createMany({
-      data: plannedFixtures.map((fixture) => ({
-        awayTeamId: fixture.awayTeamId,
-        homeTeamId: fixture.homeTeamId,
-        pitchId: fixture.pitchId,
-        round: fixture.round,
-        stage: fixture.stage,
-        startsAt: fixture.startsAt,
-        tournamentId: fixture.tournamentId,
-      })),
-    }),
-    ...plannedFixtures.map((fixture) =>
-      prisma.bracketMatch.update({
-        where: { id: fixture.matchId },
-        data: {
-          awayTeamId: fixture.awayTeamId,
-          homeTeamId: fixture.homeTeamId,
+  await prisma.$transaction(
+    [
+      prisma.fixture.deleteMany({
+        where: {
+          tournamentId: tournament.id,
+          stage: {
+            in: [...placementStages],
+          },
         },
       }),
-    ),
-  ]);
+      prisma.fixture.createMany({
+        data: plannedFixtures.map((fixture) => ({
+          awayTeamId: fixture.awayTeamId,
+          homeTeamId: fixture.homeTeamId,
+          pitchId: fixture.pitchId,
+          round: fixture.round,
+          stage: fixture.stage,
+          startsAt: fixture.startsAt,
+          tournamentId: fixture.tournamentId,
+        })),
+      }),
+      ...plannedFixtures.map((fixture) =>
+        prisma.bracketMatch.update({
+          where: { id: fixture.matchId },
+          data: {
+            awayTeamId: fixture.awayTeamId,
+            homeTeamId: fixture.homeTeamId,
+          },
+        }),
+      ),
+    ],
+    {
+      maxWait: 10_000,
+      timeout: 15_000,
+    },
+  );
 
   return plannedFixtures.length;
 }
