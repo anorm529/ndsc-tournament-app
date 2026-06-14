@@ -296,7 +296,5 @@ function toDateInput(value: string) {
 }
 
 function toDatetimeLocalInput(value: string) {
-  const date = new Date(value);
-  const offsetMs = date.getTimezoneOffset() * 60_000;
-  return new Date(date.getTime() - offsetMs).toISOString().slice(0, 16);
+  return new Date(value).toISOString().slice(0, 16);
 }

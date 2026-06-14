@@ -279,20 +279,20 @@ function EditableFixtureCard({
 
   return (
     <article className="rounded-md border border-slate-200 bg-white p-4 shadow-sm">
-      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-        <div className="min-w-0">
+      <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_auto] xl:items-center">
+        <div className="min-w-0 space-y-2">
           <div className="flex flex-wrap items-center gap-2 text-xs font-bold uppercase text-slate-500">
             <span>{formatTime(fixture.startsAt)}</span>
             <span>{getFixtureStageLabel(fixture.stage)} - {fixture.pitch}</span>
             {complete ? <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-emerald-800">Scored</span> : null}
           </div>
-          <p className="mt-2 text-base font-black text-slate-950">
+          <p className="break-words text-base font-black leading-snug text-slate-950">
             {teamName(teams, fixture.homeTeamId)} vs {teamName(teams, fixture.awayTeamId)}
           </p>
         </div>
-        <ActionForm action={updateFixtureSchedule} className="grid gap-2 sm:grid-cols-[180px_150px_auto] sm:items-end">
+        <ActionForm action={updateFixtureSchedule} className="grid min-w-0 gap-2 sm:grid-cols-[minmax(220px,1fr)_minmax(150px,0.8fr)_auto] sm:items-end xl:w-[660px]">
           <input name="fixtureId" type="hidden" value={fixture.id} />
-          <label className="block">
+          <label className="block min-w-0">
             <span className="text-[11px] font-bold uppercase text-slate-500">Time</span>
             <input
               className="mt-1 h-10 w-full rounded-md border border-slate-300 px-3 text-sm font-semibold"
@@ -302,7 +302,7 @@ function EditableFixtureCard({
               type="datetime-local"
             />
           </label>
-          <label className="block">
+          <label className="block min-w-0">
             <span className="text-[11px] font-bold uppercase text-slate-500">Pitch</span>
             <select
               className="mt-1 h-10 w-full rounded-md border border-slate-300 px-3 text-sm font-semibold"
@@ -327,20 +327,20 @@ function EditableFixtureCard({
 function PlannedPlayoffCard({ match, pitches }: { match: BracketMatch; pitches: string[] }) {
   return (
     <article className="rounded-md border border-rose-200 bg-rose-50 p-4">
-      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-        <div>
+      <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_auto] xl:items-center">
+        <div className="min-w-0">
           <div className="flex items-center gap-3 text-xs font-bold uppercase text-rose-700">
             <span>{formatTime(match.startsAt)}</span>
             <span>{match.pitch}</span>
           </div>
-          <p className="mt-3 text-base font-black text-rose-950">{match.label}</p>
+          <p className="mt-3 break-words text-base font-black text-rose-950">{match.label}</p>
           <p className="mt-1 text-sm font-semibold text-rose-900">
             {match.homeSeed} vs {match.awaySeed}
           </p>
         </div>
-        <ActionForm action={updatePlannedPlayoffSlot} className="grid gap-2 sm:grid-cols-[180px_150px_auto] sm:items-end">
+        <ActionForm action={updatePlannedPlayoffSlot} className="grid min-w-0 gap-2 sm:grid-cols-[minmax(220px,1fr)_minmax(150px,0.8fr)_auto] sm:items-end xl:w-[660px]">
           <input name="matchId" type="hidden" value={match.id} />
-          <label className="block">
+          <label className="block min-w-0">
             <span className="text-[11px] font-bold uppercase text-rose-700">Time</span>
             <input
               className="mt-1 h-10 w-full rounded-md border border-rose-200 bg-white px-3 text-sm font-semibold"
@@ -350,7 +350,7 @@ function PlannedPlayoffCard({ match, pitches }: { match: BracketMatch; pitches: 
               type="datetime-local"
             />
           </label>
-          <label className="block">
+          <label className="block min-w-0">
             <span className="text-[11px] font-bold uppercase text-rose-700">Pitch</span>
             <select
               className="mt-1 h-10 w-full rounded-md border border-rose-200 bg-white px-3 text-sm font-semibold"
@@ -416,9 +416,7 @@ function Field({ label, value }: { label: string; value: string }) {
 }
 
 function toDatetimeLocalInput(value: string) {
-  const date = new Date(value);
-  const offsetMs = date.getTimezoneOffset() * 60_000;
-  return new Date(date.getTime() - offsetMs).toISOString().slice(0, 16);
+  return new Date(value).toISOString().slice(0, 16);
 }
 
 function getNextFixtureSlot(fixtures: Array<{ startsAt: string }>, gameMinutes: number, fallback: string) {

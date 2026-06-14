@@ -273,7 +273,8 @@ function optionalDatetime(formData: FormData, key: string) {
     return null;
   }
 
-  const date = new Date(value);
+  const normalizedValue = value.length === 16 ? `${value}:00` : value;
+  const date = new Date(`${normalizedValue}Z`);
 
   if (Number.isNaN(date.getTime())) {
     throw new Error(`${key} must be a valid date and time.`);

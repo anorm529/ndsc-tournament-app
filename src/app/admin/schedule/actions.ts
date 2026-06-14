@@ -649,7 +649,8 @@ function requireInteger(formData: FormData, key: string, min: number) {
 }
 
 function parseDatetimeLocal(value: string) {
-  const date = new Date(value);
+  const normalizedValue = value.length === 16 ? `${value}:00` : value;
+  const date = new Date(`${normalizedValue}Z`);
 
   if (Number.isNaN(date.getTime())) {
     throw new Error("First pitch must be a valid date and time.");
