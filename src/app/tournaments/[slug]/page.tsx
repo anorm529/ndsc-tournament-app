@@ -83,6 +83,10 @@ export default async function TournamentPage({ params }: { params: Promise<{ slu
         <div className="space-y-5">
           <Announcements announcements={event.announcements} />
 
+          {placementFixtures.length > 0 ? (
+            <PlayoffPanel bracket={[]} placementFixtures={placementFixtures} teams={teams} />
+          ) : null}
+
           <section className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
             <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
               <div>
@@ -109,7 +113,7 @@ export default async function TournamentPage({ params }: { params: Promise<{ slu
             )}
           </section>
 
-          {roundRobinComplete ? (
+          {roundRobinComplete && placementFixtures.length === 0 ? (
             <PlayoffPanel bracket={bracket} placementFixtures={placementFixtures} teams={teams} />
           ) : null}
         </div>

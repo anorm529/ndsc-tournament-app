@@ -1,6 +1,5 @@
 import Link from "next/link";
 import {
-  ArrowLeft,
   CalendarDays,
   ClipboardList,
   LayoutDashboard,
@@ -40,13 +39,6 @@ export default async function AdminTournamentLayout({
             <h1 className="truncate text-xl font-bold text-slate-950">{tournament.name}</h1>
           </div>
           <div className="flex flex-wrap gap-2">
-            <Link
-              href="/"
-              className="inline-flex h-9 items-center gap-2 rounded-md border border-slate-300 px-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
-            >
-              <ArrowLeft size={16} />
-              Main page
-            </Link>
             <Link
               href="/admin/tournaments"
               className="inline-flex h-9 items-center rounded-md border border-slate-300 px-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
