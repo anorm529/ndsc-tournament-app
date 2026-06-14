@@ -70,8 +70,7 @@ export async function getTournamentCards(): Promise<TournamentCard[]> {
   const liveEvents = events.filter((event) => event.status === "live");
   const nextEvent =
     liveEvents[0] ??
-    events.find((event) => event.startsOn >= now && event.status !== "complete") ??
-    events[0];
+    events.find((event) => event.startsOn >= now && event.status !== "complete");
 
   return events
     .map((event) => {

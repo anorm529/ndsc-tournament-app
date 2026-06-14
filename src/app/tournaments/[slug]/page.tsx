@@ -12,6 +12,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 
+import { AutoRefresh } from "@/components/tournaments/auto-refresh";
 import { MvpLeaderboard } from "@/components/tournaments/mvp-leaderboard";
 import { StandingsTable } from "@/components/tournaments/standings-table";
 import { getTournamentBundle, getTournaments } from "@/lib/tournaments/data";
@@ -52,6 +53,7 @@ export default async function TournamentPage({ params }: { params: Promise<{ slu
 
   return (
     <main className="min-h-screen bg-[#f7f7f2] text-slate-950">
+      <AutoRefresh enabled={event.status !== "complete"} intervalMs={10000} />
       <section className="bg-rose-700 text-white">
         <div className="mx-auto max-w-5xl px-5 py-6 sm:px-6 lg:py-8">
           <Link href="/" className="inline-flex items-center gap-2 text-sm font-semibold text-rose-100 hover:text-white">

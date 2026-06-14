@@ -12,6 +12,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 
+import { AutoRefresh } from "@/components/tournaments/auto-refresh";
 import { getTournamentCards } from "@/lib/tournaments/data";
 import { formatDate } from "@/lib/tournaments/format";
 import { TournamentCard } from "@/lib/tournaments/types";
@@ -36,13 +37,16 @@ export default async function Home() {
   const allTournaments = await getTournamentCards();
   const tournaments = allTournaments.filter((tournament) => tournament.tournamentType === "public");
   const internalCount = allTournaments.filter((tournament) => tournament.tournamentType === "internal").length;
-  const featuredTournament = tournaments[0];
+  const featuredTournament = tournaments.find((tournament) =>
+    tournament.priority === "live" || tournament.priority === "next"
+  );
   const remainingTournaments = featuredTournament
     ? tournaments.filter((tournament) => tournament.id !== featuredTournament.id)
     : tournaments;
 
   return (
     <main className="min-h-screen bg-[#f8fafc]">
+      <AutoRefresh intervalMs={15000} />
       <section className="border-b border-slate-200 bg-white">
         <div className="mx-auto flex max-w-6xl flex-col gap-6 px-5 py-8 sm:px-6 lg:flex-row lg:items-end lg:justify-between lg:py-10">
           <div className="max-w-3xl">
@@ -105,7 +109,11 @@ export default async function Home() {
               </Link>
             </div>
           </section>
-        ) : null}
+        ) : (
+          <section className="mb-8 rounded-lg border border-dashed border-slate-300 bg-white p-6 text-sm font-medium text-slate-600">
+            No live or upcoming tournaments right now. Completed tournaments are listed in the archive below.
+          </section>
+        )}
 
         <div className="mb-4 flex items-end justify-between gap-4">
           <div>
