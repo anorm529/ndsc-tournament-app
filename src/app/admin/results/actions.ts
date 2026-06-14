@@ -166,6 +166,39 @@ export async function updateFixtureScores(_state: ActionState, formData: FormDat
   }
 }
 
+export async function fillPlannedPlayoffSlots(_state: ActionState, formData: FormData) {
+  try {
+    const tournamentId = readString(formData, "tournamentId");
+
+    if (!tournamentId) {
+      throw new Error("No tournament was selected.");
+    }
+
+    const tournament = await prisma.tournament.findUniqueOrThrow({
+      where: { id: tournamentId },
+      select: { slug: true },
+    });
+    const adminBase = `/admin/tournaments/${tournament.slug}`;
+    const plannedFixturesCreated = await materializePlannedPlayoffs(tournamentId);
+
+    revalidateResultPages(tournament.slug);
+    revalidatePath(`${adminBase}/schedule`);
+    refresh();
+
+    if (plannedFixturesCreated === 0) {
+      return errorState(
+        "No playoff slots were filled. Check that planned playoff slots exist and all round-robin scores are entered.",
+      );
+    }
+
+    return successState(
+      `${plannedFixturesCreated} playoff game${plannedFixturesCreated === 1 ? "" : "s"} filled from the round-robin table.`,
+    );
+  } catch (error) {
+    return errorState(error);
+  }
+}
+
 /*
  * Keep this intentionally narrow: the results page submits every fixture on the
  * page, but tournament day saves usually touch only the latest one or two games.

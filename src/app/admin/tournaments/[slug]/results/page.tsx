@@ -1,4 +1,4 @@
-import { ClipboardCheck, Save, TimerReset, Trash2 } from "lucide-react";
+import { ClipboardCheck, ListChecks, Save, TimerReset, Trash2 } from "lucide-react";
 
 import { ActionForm, ConfirmSubmitButton, SubmitButton } from "@/components/admin/action-form";
 import { PageHeader, Panel, Stat } from "@/components/admin/admin-ui";
@@ -6,7 +6,12 @@ import { FixtureCard } from "@/components/tournaments/fixture-card";
 import { getTournamentBundle } from "@/lib/tournaments/data";
 import { formatTime } from "@/lib/tournaments/format";
 import { isFixtureComplete, teamName } from "@/lib/tournaments/view-model";
-import { deleteMvpVote, deleteTournamentMvpVotes, updateFixtureScores } from "@/app/admin/results/actions";
+import {
+  deleteMvpVote,
+  deleteTournamentMvpVotes,
+  fillPlannedPlayoffSlots,
+  updateFixtureScores,
+} from "@/app/admin/results/actions";
 
 export const dynamic = "force-dynamic";
 
@@ -16,7 +21,12 @@ export default async function AdminTournamentResultsPage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const { fixtures, mvpVotes, teams, tournament } = await getTournamentBundle(slug);
+  const { bracket, fixtures, mvpVotes, teams, tournament } = await getTournamentBundle(slug);
+  const groupFixtures = fixtures.filter((fixture) => fixture.stage === "group");
+  const placementFixtures = fixtures.filter((fixture) => isPlacementStage(fixture.stage));
+  const plannedPlacementSlots = bracket.filter((match) => isPlacementStage(match.stage));
+  const groupStageComplete =
+    groupFixtures.length > 0 && groupFixtures.every((fixture) => isFixtureComplete(fixture));
   const outstanding = fixtures.filter((fixture) => !isFixtureComplete(fixture));
   const completed = fixtures.filter(isFixtureComplete);
   const totalFixtures = fixtures.length;
@@ -87,6 +97,41 @@ export default async function AdminTournamentResultsPage({
         </div>
       </ActionForm>
 
+      {groupStageComplete ? (
+        <Panel
+          title="Placement Playoffs"
+          action={
+            placementFixtures.length > 0 ? (
+              <span className="text-sm font-semibold text-slate-500">{placementFixtures.length} ready</span>
+            ) : plannedPlacementSlots.length > 0 ? (
+              <ActionForm action={fillPlannedPlayoffSlots}>
+                <input name="tournamentId" type="hidden" value={tournament.id} />
+                <SubmitButton className="inline-flex h-10 items-center justify-center gap-2 rounded-md bg-slate-950 px-3 text-xs font-bold text-white transition disabled:cursor-not-allowed disabled:bg-slate-400">
+                  <ListChecks size={14} /> Fill teams
+                </SubmitButton>
+              </ActionForm>
+            ) : (
+              <span className="text-sm font-semibold text-slate-500">No slots planned</span>
+            )
+          }
+        >
+          {placementFixtures.length > 0 ? (
+            <p className="text-sm font-medium text-slate-600">
+              Playoff games are ready in Open Games. Enter their scores and MVPs the same way as group games.
+            </p>
+          ) : plannedPlacementSlots.length > 0 ? (
+            <p className="text-sm font-medium text-slate-600">
+              Round-robin scores are complete. Fill the planned playoff slots from the standings, then the playoff
+              games will appear in Open Games for scores and MVPs.
+            </p>
+          ) : (
+            <p className="text-sm font-medium text-slate-600">
+              Plan playoff slots from the Schedule page first, then return here once the round robin is complete.
+            </p>
+          )}
+        </Panel>
+      ) : null}
+
       <Panel
         title="MVP Votes"
         action={
@@ -151,4 +196,8 @@ function EmptyResultsMessage({ message }: { message: string }) {
       {message}
     </div>
   );
+}
+
+function isPlacementStage(stage: string) {
+  return stage === "final" || stage === "third-place" || stage === "fifth-place";
 }
