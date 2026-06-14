@@ -11,10 +11,8 @@ export default async function InternalSeasonPage() {
   const champion = season.teamRows[0];
   const maleMvpRows = season.mvpRows.filter((row) => row.category === "male");
   const femaleMvpRows = season.mvpRows.filter((row) => row.category === "female");
-  const topMvp = [...maleMvpRows, ...femaleMvpRows].sort((a, b) => {
-    if (b.votes !== a.votes) return b.votes - a.votes;
-    return a.playerName.localeCompare(b.playerName);
-  })[0];
+  const topMaleMvp = maleMvpRows[0];
+  const topFemaleMvp = femaleMvpRows[0];
 
   return (
     <main className="min-h-screen bg-[#f8fafc]">
@@ -37,7 +35,8 @@ export default async function InternalSeasonPage() {
             </div>
             <div className="grid gap-3 rounded-lg border border-slate-200 bg-slate-50 p-4">
               <Stat icon={Trophy} label="Current leader" value={champion?.teamName ?? "TBC"} />
-              <Stat icon={Medal} label="Top MVP" value={topMvp?.playerName ?? "TBC"} />
+              <Stat icon={Medal} label="Total male MVP" value={formatMvpLeader(topMaleMvp)} />
+              <Stat icon={Medal} label="Total female MVP" value={formatMvpLeader(topFemaleMvp)} />
               <Stat icon={CalendarDays} label="Events" value={`${season.tournaments.length}`} />
             </div>
           </div>
@@ -117,12 +116,20 @@ export default async function InternalSeasonPage() {
         </div>
 
         <aside className="space-y-5 lg:sticky lg:top-5 lg:self-start">
-          <MvpPanel title="Male MVP" rows={maleMvpRows.slice(0, 8)} />
-          <MvpPanel title="Female MVP" rows={femaleMvpRows.slice(0, 8)} />
+          <MvpPanel title="Total Male MVP" rows={maleMvpRows.slice(0, 8)} />
+          <MvpPanel title="Total Female MVP" rows={femaleMvpRows.slice(0, 8)} />
         </aside>
       </section>
     </main>
   );
+}
+
+function formatMvpLeader(row?: { playerName: string; votes: number }) {
+  if (!row) {
+    return "TBC";
+  }
+
+  return `${row.playerName} (${row.votes})`;
 }
 
 function Stat({ icon: Icon, label, value }: { icon: LucideIcon; label: string; value: string }) {
