@@ -152,8 +152,8 @@ export async function generatePlacementSchedule(_state: ActionState, formData: F
     const groupFixtures = tournament.fixtures.filter((fixture) => fixture.stage === "group");
     const placementFixtures = tournament.fixtures.filter((fixture) => isPlacementStage(fixture.stage));
 
-    if (tournament.teams.length < 4) {
-      throw new Error("Add at least four teams before generating placement playoffs.");
+    if (tournament.teams.length < 3) {
+      throw new Error("Add at least three teams before generating placement playoffs.");
     }
 
     if (groupFixtures.length === 0) {
@@ -380,11 +380,18 @@ export async function generatePlannedPlayoffs(_state: ActionState, formData: For
         pitches: {
           orderBy: { sortOrder: "asc" },
         },
+        teams: {
+          orderBy: { name: "asc" },
+        },
       },
     });
 
-    if (tournament.pitches.length < 2) {
-      throw new Error("Add at least two pitches before planning playoff slots.");
+    if (tournament.teams.length < 3) {
+      throw new Error("Add at least three teams before planning playoff slots.");
+    }
+
+    if (tournament.pitches.length < 1) {
+      throw new Error("Add at least one pitch before planning playoff slots.");
     }
 
     if (tournament.bracketMatches.length > 0 && !replaceExisting) {
@@ -401,10 +408,24 @@ export async function generatePlannedPlayoffs(_state: ActionState, formData: For
 
     const games = [
       { awaySeed: "2nd", homeSeed: "1st", label: "Final", pitchIndex: 0, sortOrder: 1, stage: "final" },
-      { awaySeed: "4th", homeSeed: "3rd", label: "3rd place game", pitchIndex: 1, sortOrder: 2, stage: "third-place" },
     ];
 
+    if (tournament.teams.length >= 4) {
+      games.push({
+        awaySeed: "4th",
+        homeSeed: "3rd",
+        label: "3rd place game",
+        pitchIndex: Math.min(1, tournament.pitches.length - 1),
+        sortOrder: 2,
+        stage: "third-place",
+      });
+    }
+
     if (includeFifthPlaceGame) {
+      if (tournament.teams.length < 6) {
+        throw new Error("Add at least six teams before planning a 5th v 6th slot.");
+      }
+
       games.push({
         awaySeed: "6th",
         homeSeed: "5th",

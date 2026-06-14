@@ -141,7 +141,8 @@ export default async function AdminTournamentSchedulePage({
           </div>
         </ActionForm>
         <p className="mt-4 text-sm text-slate-600">
-          Use this before the tournament starts to reserve the final placement games in the day plan. Once every round-robin score is entered, these slots are filled automatically from the standings: 1st v 2nd, 3rd v 4th, and optionally 5th v 6th.
+          Use this before the tournament starts to reserve placement games in the day plan. With 3 teams this creates
+          1st v 2nd only; 4+ teams also get 3rd v 4th, and 6+ teams can optionally add 5th v 6th.
         </p>
       </Panel>
       <Panel title="Breaks and Lunch">
@@ -478,5 +479,9 @@ function getPlacementPreview(teamCount: number) {
     return "1v2 and 3v4";
   }
 
-  return "Need 4 teams";
+  if (teamCount >= 3) {
+    return "1v2 only";
+  }
+
+  return "Need 3 teams";
 }

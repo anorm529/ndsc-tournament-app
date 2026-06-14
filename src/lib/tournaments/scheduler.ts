@@ -75,15 +75,18 @@ export function generatePlacementPlayoffs({
     stage: Extract<Fixture["stage"], "final" | "third-place" | "fifth-place">;
   }> = [
     { awayIndex: 1, homeIndex: 0, stage: "final" as const },
-    { awayIndex: 3, homeIndex: 2, stage: "third-place" as const },
   ];
+
+  if (rankedTeams.length >= 4) {
+    placementGames.push({ awayIndex: 3, homeIndex: 2, stage: "third-place" as const });
+  }
 
   if (includeFifthPlaceGame) {
     placementGames.push({ awayIndex: 5, homeIndex: 4, stage: "fifth-place" as const });
   }
 
-  if (rankedTeams.length < 4) {
-    throw new Error("At least four ranked teams are needed to generate placement playoffs.");
+  if (rankedTeams.length < 3) {
+    throw new Error("At least three ranked teams are needed to generate placement playoffs.");
   }
 
   if (includeFifthPlaceGame && rankedTeams.length < 6) {
