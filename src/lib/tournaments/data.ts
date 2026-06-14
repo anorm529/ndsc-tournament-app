@@ -114,10 +114,15 @@ export async function getInternalSeasonLeaderboard(
 
 export async function getActiveTournamentBundle(): Promise<TournamentBundle> {
   const slug = await getActiveTournamentSlug();
+
+  if (!slug) {
+    throw new Error("No active tournaments found.");
+  }
+
   return getTournamentBundle(slug);
 }
 
-export async function getActiveTournamentSlug(): Promise<string> {
+export async function getActiveTournamentSlug(): Promise<string | null> {
   const event = await prisma.tournament.findFirst({
     orderBy: [{ startsOn: "asc" }, { name: "asc" }],
     where: {
@@ -127,11 +132,7 @@ export async function getActiveTournamentSlug(): Promise<string> {
     },
   });
 
-  if (!event) {
-    throw new Error("No tournaments found. Run npm run db:seed or create one in the database.");
-  }
-
-  return event.slug;
+  return event?.slug ?? null;
 }
 
 export async function getTournamentBundle(slug: string): Promise<TournamentBundle> {

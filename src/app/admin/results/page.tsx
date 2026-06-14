@@ -6,5 +6,5 @@ export const dynamic = "force-dynamic";
 
 export default async function AdminResultsPage() {
   const slug = await getActiveTournamentSlug();
-  redirect(`/admin/tournaments/${slug}/results`);
+  redirect(slug ? `/admin/tournaments/${slug}/results` : "/admin/tournaments");
 }

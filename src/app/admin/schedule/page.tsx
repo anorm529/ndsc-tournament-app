@@ -6,5 +6,5 @@ export const dynamic = "force-dynamic";
 
 export default async function AdminSchedulePage() {
   const slug = await getActiveTournamentSlug();
-  redirect(`/admin/tournaments/${slug}/schedule`);
+  redirect(slug ? `/admin/tournaments/${slug}/schedule` : "/admin/tournaments");
 }
