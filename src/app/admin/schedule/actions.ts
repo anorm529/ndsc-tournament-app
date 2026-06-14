@@ -546,11 +546,21 @@ export async function updateFixtureSchedule(_state: ActionState, formData: FormD
   try {
     const fixtureId = requireText(formData, "fixtureId");
     const startsAt = parseDatetimeLocal(requireText(formData, "fixtureStartsAt"));
+    const homeTeamId = requireText(formData, "homeTeamId");
+    const awayTeamId = requireText(formData, "awayTeamId");
     const pitchName = requireText(formData, "pitchName");
+
+    if (homeTeamId === awayTeamId) {
+      throw new Error("A match needs two different teams.");
+    }
 
     const fixture = await prisma.fixture.findUniqueOrThrow({
       where: { id: fixtureId },
       select: {
+        awayTeamId: true,
+        awayRuns: true,
+        homeRuns: true,
+        homeTeamId: true,
         id: true,
         tournamentId: true,
         tournament: {
@@ -560,18 +570,40 @@ export async function updateFixtureSchedule(_state: ActionState, formData: FormD
     });
 
     const pitch = await findTournamentPitch(pitchName, fixture.tournamentId);
+    await assertTeamBelongsToTournament(homeTeamId, fixture.tournamentId);
+    await assertTeamBelongsToTournament(awayTeamId, fixture.tournamentId);
+    const teamsChanged = fixture.homeTeamId !== homeTeamId || fixture.awayTeamId !== awayTeamId;
 
-    await prisma.fixture.update({
-      where: { id: fixture.id },
-      data: {
-        pitchId: pitch.id,
-        startsAt,
-      },
-    });
+    if (teamsChanged && (fixture.homeRuns !== null || fixture.awayRuns !== null)) {
+      throw new Error("Clear this match score before changing its teams.");
+    }
+
+    await prisma.$transaction([
+      prisma.tournament.update({
+        where: { id: fixture.tournamentId },
+        data: { schedulePublished: false },
+      }),
+      ...(teamsChanged
+        ? [
+            prisma.mvpVote.deleteMany({
+              where: { fixtureId: fixture.id },
+            }),
+          ]
+        : []),
+      prisma.fixture.update({
+        where: { id: fixture.id },
+        data: {
+          awayTeamId,
+          homeTeamId,
+          pitchId: pitch.id,
+          startsAt,
+        },
+      }),
+    ]);
 
     revalidateSchedulePages(fixture.tournament.slug);
     refresh();
-    return successState("Match slot updated.");
+    return successState(teamsChanged ? "Match teams and slot updated. Schedule moved back to draft." : "Match slot updated. Schedule moved back to draft.");
   } catch (error) {
     return errorState(error);
   }
@@ -596,13 +628,19 @@ export async function updatePlannedPlayoffSlot(_state: ActionState, formData: Fo
 
     const pitch = await findTournamentPitch(pitchName, match.tournamentId);
 
-    await prisma.bracketMatch.update({
-      where: { id: match.id },
-      data: {
-        pitchId: pitch.id,
-        startsAt,
-      },
-    });
+    await prisma.$transaction([
+      prisma.tournament.update({
+        where: { id: match.tournamentId },
+        data: { schedulePublished: false },
+      }),
+      prisma.bracketMatch.update({
+        where: { id: match.id },
+        data: {
+          pitchId: pitch.id,
+          startsAt,
+        },
+      }),
+    ]);
 
     revalidateSchedulePages(match.tournament.slug);
     refresh();
@@ -636,6 +674,20 @@ async function findTournamentPitch(pitchName: string, tournamentId: string) {
   }
 
   return pitch;
+}
+
+async function assertTeamBelongsToTournament(teamId: string, tournamentId: string) {
+  const team = await prisma.team.findFirst({
+    where: {
+      id: teamId,
+      tournamentId,
+    },
+    select: { id: true },
+  });
+
+  if (!team) {
+    throw new Error("Selected team does not belong to this tournament.");
+  }
 }
 
 function requireInteger(formData: FormData, key: string, min: number) {

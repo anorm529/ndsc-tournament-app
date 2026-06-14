@@ -49,13 +49,13 @@ export default async function AdminTournamentSchedulePage({
         description="Generate and review round-robin fixtures from teams, pitches, and game duration."
       />
       <Panel title="Schedule Status">
-        <div className="grid gap-4 lg:grid-cols-[1fr_auto] lg:items-center">
+        <div className="space-y-4">
           <div className="grid gap-3 sm:grid-cols-3">
-            <Field label="Public schedule" value={tournament.schedulePublished ? "Published" : "Draft"} />
+            <Field label="Public" value={tournament.schedulePublished ? "Published" : "Draft"} />
             <Field label="Matches" value={`${fixtures.length}`} />
-            <Field label="Breaks / playoff slots" value={`${scheduleBlocks.length + bracket.length}`} />
+            <Field label="Extras" value={`${scheduleBlocks.length + bracket.length}`} />
           </div>
-          <div className="flex flex-wrap gap-2 lg:justify-end">
+          <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
             {tournament.schedulePublished ? (
               <ActionForm action={unpublishSchedule}>
                 <input name="tournamentId" type="hidden" value={tournament.id} />
@@ -195,7 +195,7 @@ export default async function AdminTournamentSchedulePage({
             {Object.entries(groupedFixtures).map(([startsAt, slotFixtures]) => (
               <div key={startsAt}>
                 <p className="mb-2 text-sm font-bold text-slate-600">{formatTime(startsAt)}</p>
-                <div className="grid gap-3 lg:grid-cols-2">
+                <div className="grid gap-3">
                   {slotFixtures.map((fixture) => (
                     <EditableFixtureCard key={fixture.id} fixture={fixture} pitches={tournament.pitches} teams={teams} />
                   ))}
@@ -278,8 +278,8 @@ function EditableFixtureCard({
   const complete = isFixtureComplete(fixture);
 
   return (
-    <article className="rounded-md border border-slate-200 bg-white p-4 shadow-sm">
-      <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_auto] xl:items-center">
+    <article className="overflow-hidden rounded-md border border-slate-200 bg-white p-4 shadow-sm">
+      <div className="grid gap-4">
         <div className="min-w-0 space-y-2">
           <div className="flex flex-wrap items-center gap-2 text-xs font-bold uppercase text-slate-500">
             <span>{formatTime(fixture.startsAt)}</span>
@@ -290,8 +290,34 @@ function EditableFixtureCard({
             {teamName(teams, fixture.homeTeamId)} vs {teamName(teams, fixture.awayTeamId)}
           </p>
         </div>
-        <ActionForm action={updateFixtureSchedule} className="grid min-w-0 gap-2 sm:grid-cols-[minmax(220px,1fr)_minmax(150px,0.8fr)_auto] sm:items-end xl:w-[660px]">
+        <ActionForm action={updateFixtureSchedule} className="grid min-w-0 gap-2 md:grid-cols-2 xl:grid-cols-[minmax(150px,1fr)_minmax(150px,1fr)_minmax(220px,1.2fr)_minmax(140px,0.8fr)_auto] xl:items-end">
           <input name="fixtureId" type="hidden" value={fixture.id} />
+          <label className="block min-w-0">
+            <span className="text-[11px] font-bold uppercase text-slate-500">Home</span>
+            <select
+              className="mt-1 h-10 w-full rounded-md border border-slate-300 px-3 text-sm font-semibold"
+              defaultValue={fixture.homeTeamId}
+              name="homeTeamId"
+              required
+            >
+              {teams.map((team) => (
+                <option key={team.id} value={team.id}>{team.name}</option>
+              ))}
+            </select>
+          </label>
+          <label className="block min-w-0">
+            <span className="text-[11px] font-bold uppercase text-slate-500">Away</span>
+            <select
+              className="mt-1 h-10 w-full rounded-md border border-slate-300 px-3 text-sm font-semibold"
+              defaultValue={fixture.awayTeamId}
+              name="awayTeamId"
+              required
+            >
+              {teams.map((team) => (
+                <option key={team.id} value={team.id}>{team.name}</option>
+              ))}
+            </select>
+          </label>
           <label className="block min-w-0">
             <span className="text-[11px] font-bold uppercase text-slate-500">Time</span>
             <input
@@ -315,7 +341,7 @@ function EditableFixtureCard({
               ))}
             </select>
           </label>
-          <SubmitButton className="inline-flex h-10 items-center justify-center gap-2 rounded-md bg-slate-950 px-3 text-sm font-semibold text-white transition hover:bg-slate-800">
+          <SubmitButton className="inline-flex h-10 items-center justify-center gap-2 rounded-md bg-slate-950 px-3 text-sm font-semibold text-white transition hover:bg-slate-800 md:col-span-2 xl:col-span-1">
             <Save size={15} /> Save
           </SubmitButton>
         </ActionForm>
@@ -326,8 +352,8 @@ function EditableFixtureCard({
 
 function PlannedPlayoffCard({ match, pitches }: { match: BracketMatch; pitches: string[] }) {
   return (
-    <article className="rounded-md border border-rose-200 bg-rose-50 p-4">
-      <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_auto] xl:items-center">
+    <article className="overflow-hidden rounded-md border border-rose-200 bg-rose-50 p-4">
+      <div className="grid gap-4">
         <div className="min-w-0">
           <div className="flex items-center gap-3 text-xs font-bold uppercase text-rose-700">
             <span>{formatTime(match.startsAt)}</span>
@@ -338,7 +364,7 @@ function PlannedPlayoffCard({ match, pitches }: { match: BracketMatch; pitches: 
             {match.homeSeed} vs {match.awaySeed}
           </p>
         </div>
-        <ActionForm action={updatePlannedPlayoffSlot} className="grid min-w-0 gap-2 sm:grid-cols-[minmax(220px,1fr)_minmax(150px,0.8fr)_auto] sm:items-end xl:w-[660px]">
+        <ActionForm action={updatePlannedPlayoffSlot} className="grid min-w-0 gap-2 md:grid-cols-[minmax(220px,1fr)_minmax(150px,0.8fr)_auto] md:items-end">
           <input name="matchId" type="hidden" value={match.id} />
           <label className="block min-w-0">
             <span className="text-[11px] font-bold uppercase text-rose-700">Time</span>
@@ -408,9 +434,9 @@ function ScheduleBlockCard({ block }: { block: ScheduleBlock }) {
 
 function Field({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-md bg-slate-50 p-3">
-      <p className="text-xs font-semibold uppercase text-slate-500">{label}</p>
-      <p className="mt-1 text-sm font-bold text-slate-950">{value}</p>
+    <div className="min-w-0 rounded-md bg-slate-50 p-3">
+      <p className="truncate text-xs font-semibold uppercase text-slate-500">{label}</p>
+      <p className="mt-1 break-words text-sm font-bold text-slate-950">{value}</p>
     </div>
   );
 }
