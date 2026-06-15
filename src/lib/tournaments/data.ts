@@ -224,8 +224,6 @@ export function mapTournament(
     slotGapMinutes: record.slotGapMinutes,
     schedulePublished: record.schedulePublished,
     checkInTime: record.checkInAt?.toISOString() ?? record.startsOn.toISOString(),
-    brandPrimary: record.brandPrimary,
-    brandSecondary: record.brandSecondary,
     points: {
       win: record.winPoints,
       draw: record.drawPoints,

@@ -75,8 +75,6 @@ export async function generateSchedule(_state: ActionState, formData: FormData) 
         slotGapMinutes: tournament.slotGapMinutes,
         schedulePublished: tournament.schedulePublished,
         checkInTime: tournament.checkInAt?.toISOString() ?? tournament.startsOn.toISOString(),
-        brandPrimary: tournament.brandPrimary,
-        brandSecondary: tournament.brandSecondary,
         points: {
           win: tournament.winPoints,
           draw: tournament.drawPoints,
@@ -873,8 +871,6 @@ function mapTournamentView(record: {
   slotGapMinutes: number;
   schedulePublished: boolean;
   checkInAt: Date | null;
-  brandPrimary: string;
-  brandSecondary: string;
   winPoints: number;
   drawPoints: number;
   lossPoints: number;
@@ -899,8 +895,6 @@ function mapTournamentView(record: {
     slotGapMinutes: record.slotGapMinutes,
     schedulePublished: record.schedulePublished,
     checkInTime: record.checkInAt?.toISOString() ?? record.startsOn.toISOString(),
-    brandPrimary: record.brandPrimary,
-    brandSecondary: record.brandSecondary,
     points: {
       win: record.winPoints,
       draw: record.drawPoints,

@@ -21,8 +21,6 @@ export type Tournament = {
   slotGapMinutes: number;
   schedulePublished: boolean;
   checkInTime: string;
-  brandPrimary: string;
-  brandSecondary: string;
   points: {
     win: number;
     draw: number;

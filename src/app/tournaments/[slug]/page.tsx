@@ -7,6 +7,7 @@ import {
   MapPin,
   Megaphone,
   Medal,
+  MonitorUp,
   Trophy,
   Users,
   type LucideIcon,
@@ -15,6 +16,7 @@ import {
 import { AutoRefresh } from "@/components/tournaments/auto-refresh";
 import { MvpLeaderboard } from "@/components/tournaments/mvp-leaderboard";
 import { StandingsTable } from "@/components/tournaments/standings-table";
+import { ndscColours, ndscHeroGradient } from "@/lib/ndsc-theme";
 import { getTournamentBundle, getTournaments } from "@/lib/tournaments/data";
 import { formatDate, formatTime } from "@/lib/tournaments/format";
 import { BracketMatch, Fixture, ScheduleBlock, Standing, Team } from "@/lib/tournaments/types";
@@ -52,15 +54,16 @@ export default async function TournamentPage({ params }: { params: Promise<{ slu
   const scheduleItemCount = publicFixtures.length + publicScheduleBlocks.length + (placementFixtures.length > 0 ? 0 : publicBracket.length);
 
   return (
-    <main className="min-h-screen bg-[#f7f7f2] text-slate-950">
+    <main className="min-h-screen text-slate-950" style={{ backgroundColor: ndscColours.warmPage }}>
       <AutoRefresh enabled={event.status !== "complete"} intervalMs={10000} />
-      <section className="text-white" style={{ backgroundColor: event.brandPrimary }}>
+      <section className="text-white" style={{ background: ndscHeroGradient() }}>
         <div className="mx-auto max-w-5xl px-5 py-6 sm:px-6 lg:py-8">
-          <Link href="/" className="inline-flex items-center gap-2 text-sm font-semibold text-rose-100 hover:text-white">
+          <Link href="/" className="inline-flex items-center gap-2 text-sm font-semibold text-slate-300 hover:text-white">
             <ArrowLeft size={16} /> All tournaments
           </Link>
           <div className="mt-7">
-            <div>
+            <div className="grid gap-5 lg:grid-cols-[1fr_auto] lg:items-end">
+              <div>
               <p className="inline-flex rounded-full bg-white/15 px-3 py-1 text-xs font-bold uppercase tracking-[0.14em] text-white">
                 {event.status} tournament
               </p>
@@ -68,6 +71,16 @@ export default async function TournamentPage({ params }: { params: Promise<{ slu
               <p className="mt-3 max-w-2xl text-base leading-7 text-white/90 sm:text-lg">
                 Schedule, live standings, results, playoffs, and MVP leaders for the club tournament day.
               </p>
+              </div>
+              {event.schedulePublished ? (
+                <Link
+                  href={`/tournaments/${event.slug}/live`}
+                  className="inline-flex h-11 w-fit items-center justify-center gap-2 rounded-md px-4 text-sm font-black text-slate-950 transition hover:brightness-95"
+                  style={{ backgroundColor: ndscColours.mint }}
+                >
+                  <MonitorUp size={16} /> Live board
+                </Link>
+              ) : null}
             </div>
             <div className="mt-6 grid gap-2 sm:grid-cols-3">
               <Info icon={CalendarDays} label={formatDate(event.date)} />
@@ -262,13 +275,13 @@ function FullDaySchedule({
 
 function PublicPlannedPlayoff({ match }: { match: BracketMatch }) {
   return (
-    <article className="rounded-md border border-rose-200 bg-white p-3">
-      <div className="flex items-center justify-between gap-3 text-xs font-bold uppercase text-rose-700">
+    <article className="rounded-md border border-teal-200 bg-white p-3">
+      <div className="flex items-center justify-between gap-3 text-xs font-bold uppercase text-teal-700">
         <span>{match.pitch}</span>
         <span>Playoff</span>
       </div>
-      <p className="mt-2 text-sm font-black text-rose-950">{match.label}</p>
-      <p className="mt-1 text-sm font-semibold text-rose-900">
+      <p className="mt-2 text-sm font-black text-slate-950">{match.label}</p>
+      <p className="mt-1 text-sm font-semibold text-teal-900">
         {match.homeSeed} vs {match.awaySeed}
       </p>
     </article>
@@ -324,7 +337,7 @@ function getFixtureStageLabel(stage: Fixture["stage"]) {
 
 function Info({ icon: Icon, label }: { icon: LucideIcon; label: string }) {
   return (
-    <div className="flex min-h-11 items-center gap-3 rounded-md bg-white/10 px-3 py-2 text-sm font-semibold text-rose-50">
+    <div className="flex min-h-11 items-center gap-3 rounded-md bg-white/10 px-3 py-2 text-sm font-semibold text-white">
       <Icon size={17} className="shrink-0" />
       <span>{label}</span>
     </div>
@@ -335,13 +348,13 @@ function Announcements({ announcements }: { announcements: string[] }) {
   return (
     <section className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
       <div className="flex items-center gap-2">
-        <Megaphone size={18} className="text-rose-700" />
+        <Megaphone size={18} className="text-teal-700" />
         <h2 className="text-lg font-bold">Announcements</h2>
       </div>
       <div className="mt-4 grid gap-2">
         {announcements.length > 0 ? (
           announcements.map((announcement) => (
-            <p key={announcement} className="rounded-md bg-rose-50 px-4 py-3 text-sm font-medium text-rose-950">
+            <p key={announcement} className="rounded-md bg-teal-50 px-4 py-3 text-sm font-medium text-teal-950">
               {announcement}
             </p>
           ))

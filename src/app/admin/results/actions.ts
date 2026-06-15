@@ -450,8 +450,6 @@ function mapTournamentView(record: {
   slotGapMinutes: number;
   schedulePublished: boolean;
   checkInAt: Date | null;
-  brandPrimary: string;
-  brandSecondary: string;
   winPoints: number;
   drawPoints: number;
   lossPoints: number;
@@ -476,8 +474,6 @@ function mapTournamentView(record: {
     slotGapMinutes: record.slotGapMinutes,
     schedulePublished: record.schedulePublished,
     checkInTime: record.checkInAt?.toISOString() ?? record.startsOn.toISOString(),
-    brandPrimary: record.brandPrimary,
-    brandSecondary: record.brandSecondary,
     points: {
       win: record.winPoints,
       draw: record.drawPoints,

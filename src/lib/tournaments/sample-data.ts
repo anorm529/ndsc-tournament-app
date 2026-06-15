@@ -18,8 +18,6 @@ export const tournament: Tournament = {
   slotGapMinutes: 0,
   schedulePublished: true,
   checkInTime: "2026-08-22T08:45:00.000Z",
-  brandPrimary: "#be123c",
-  brandSecondary: "#0f172a",
   points: {
     win: 3,
     draw: 1,
@@ -207,8 +205,6 @@ export const tournaments: Tournament[] = [
     slotGapMinutes: 10,
     schedulePublished: false,
     checkInTime: "2026-09-12T08:30:00.000Z",
-    brandPrimary: "#be123c",
-    brandSecondary: "#0f172a",
     points: {
       win: 3,
       draw: 1,

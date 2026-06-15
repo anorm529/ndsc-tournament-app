@@ -26,8 +26,6 @@ export default async function AdminTournamentsPage() {
               drawPoints: "1",
               format: "round-robin",
               gameMinutes: "45",
-              brandPrimary: "#be123c",
-              brandSecondary: "#0f172a",
               lossPoints: "0",
               mvpMode: "overall",
               pitches: "Diamond 1\nDiamond 2",
@@ -75,8 +73,6 @@ export default async function AdminTournamentsPage() {
                   drawPoints: `${event.points.draw}`,
                   format: event.format,
                   gameMinutes: `${event.gameMinutes}`,
-                  brandPrimary: event.brandPrimary,
-                  brandSecondary: event.brandSecondary,
                   lossPoints: `${event.points.loss}`,
                   mvpMode: event.mvpMode,
                   name: event.name,
@@ -152,8 +148,6 @@ function TournamentFields({
           value={defaults.tournamentType}
         />
         <TextField label="Season year" min={2000} name="seasonYear" required type="number" value={defaults.seasonYear} />
-        <TextField label="Primary colour" name="brandPrimary" required type="color" value={defaults.brandPrimary} />
-        <TextField label="Secondary colour" name="brandSecondary" required type="color" value={defaults.brandSecondary} />
         <SelectField
           label="MVP mode"
           name="mvpMode"
@@ -193,8 +187,6 @@ function TournamentFields({
 
 type FieldName =
   | "announcements"
-  | "brandPrimary"
-  | "brandSecondary"
   | "checkInAt"
   | "city"
   | "drawPoints"

@@ -2,6 +2,7 @@ import { CalendarDays, MapPin, RefreshCw, Trophy } from "lucide-react";
 
 import { AutoRefresh } from "@/components/tournaments/auto-refresh";
 import { StandingsTable } from "@/components/tournaments/standings-table";
+import { ndscColours, ndscHeroGradient } from "@/lib/ndsc-theme";
 import { getTournamentBundle } from "@/lib/tournaments/data";
 import { formatDate, formatTime } from "@/lib/tournaments/format";
 import { isFixtureComplete, teamName } from "@/lib/tournaments/view-model";
@@ -22,13 +23,10 @@ export default async function TournamentLivePage({ params }: { params: Promise<{
     <main className="min-h-screen bg-slate-950 p-4 text-white sm:p-6">
       <AutoRefresh enabled={tournament.status !== "complete"} intervalMs={8000} />
       <section className="mx-auto grid max-w-7xl gap-6">
-        <header
-          className="rounded-lg p-5 sm:p-6"
-          style={{ background: `linear-gradient(135deg, ${tournament.brandPrimary}, #020617)` }}
-        >
+        <header className="rounded-lg p-5 sm:p-6" style={{ background: ndscHeroGradient() }}>
           <div className="grid gap-5 lg:grid-cols-[1fr_420px] lg:items-end">
             <div>
-              <p className="text-sm font-bold uppercase tracking-[0.18em] text-white/75">NDSC live board</p>
+              <p className="text-sm font-bold uppercase tracking-[0.18em]" style={{ color: ndscColours.mint }}>NDSC live board</p>
               <h1 className="mt-2 text-4xl font-black tracking-tight sm:text-6xl">{tournament.name}</h1>
               <div className="mt-5 grid gap-2 text-sm font-bold text-white/90 sm:grid-cols-2">
                 <span className="inline-flex items-center gap-2 rounded-md bg-white/12 px-3 py-2">

@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 
 import { AutoRefresh } from "@/components/tournaments/auto-refresh";
+import { ndscColours } from "@/lib/ndsc-theme";
 import { getTournamentCards } from "@/lib/tournaments/data";
 import { formatDate } from "@/lib/tournaments/format";
 import { TournamentCard } from "@/lib/tournaments/types";
@@ -23,7 +24,7 @@ const statusStyles: Record<TournamentCard["status"], string> = {
   complete: "bg-slate-200 text-slate-700",
   draft: "bg-amber-100 text-amber-800",
   live: "bg-emerald-100 text-emerald-800",
-  published: "bg-rose-100 text-rose-800",
+  published: "bg-teal-100 text-teal-800",
 };
 
 const statusLabels: Record<TournamentCard["status"], string> = {
@@ -45,37 +46,38 @@ export default async function Home() {
     : tournaments;
 
   return (
-    <main className="min-h-screen bg-[#f8fafc]">
+    <main className="min-h-screen" style={{ backgroundColor: ndscColours.page }}>
       <AutoRefresh intervalMs={15000} />
-      <section className="border-b border-slate-200 bg-white">
+      <section className="border-b border-slate-800 text-white" style={{ backgroundColor: ndscColours.navy }}>
         <div className="mx-auto flex max-w-6xl flex-col gap-6 px-5 py-8 sm:px-6 lg:flex-row lg:items-end lg:justify-between lg:py-10">
           <div className="max-w-3xl">
-            <p className="text-sm font-semibold uppercase tracking-[0.18em] text-rose-700">
+            <p className="text-sm font-semibold uppercase tracking-[0.18em]" style={{ color: ndscColours.mint }}>
               North Down Softball Club
             </p>
-            <h1 className="mt-3 text-4xl font-bold tracking-tight text-slate-950 sm:text-5xl">
+            <h1 className="mt-3 text-4xl font-bold tracking-tight text-white sm:text-5xl">
               Club Tournaments
             </h1>
-            <p className="mt-4 max-w-2xl text-lg leading-8 text-slate-600">
+            <p className="mt-4 max-w-2xl text-lg leading-8 text-slate-300">
               Schedules, results, standings, brackets, and MVP leaders for NDSC tournament days.
             </p>
           </div>
           <div className="flex flex-wrap gap-3">
             <Link
               href="/internal"
-              className="inline-flex h-11 w-fit items-center justify-center gap-2 rounded-md border border-slate-300 bg-white px-4 text-sm font-semibold text-slate-800 transition hover:bg-slate-50"
+              className="inline-flex h-11 w-fit items-center justify-center gap-2 rounded-md border border-white/20 bg-white/5 px-4 text-sm font-semibold text-white transition hover:bg-white/10"
             >
               <Star size={16} /> Internal league
             </Link>
             <Link
               href="/archive"
-              className="inline-flex h-11 w-fit items-center justify-center gap-2 rounded-md border border-slate-300 bg-white px-4 text-sm font-semibold text-slate-800 transition hover:bg-slate-50"
+              className="inline-flex h-11 w-fit items-center justify-center gap-2 rounded-md border border-white/20 bg-white/5 px-4 text-sm font-semibold text-white transition hover:bg-white/10"
             >
               <Trophy size={16} /> Archive
             </Link>
             <Link
               href="/admin"
-              className="inline-flex h-11 w-fit items-center justify-center gap-2 rounded-md bg-slate-950 px-4 text-sm font-semibold text-white transition hover:bg-slate-800"
+              className="inline-flex h-11 w-fit items-center justify-center gap-2 rounded-md px-4 text-sm font-semibold text-slate-950 transition hover:brightness-95"
+              style={{ backgroundColor: ndscColours.mint }}
             >
               <LockKeyhole size={16} /> Admin
             </Link>
@@ -85,10 +87,10 @@ export default async function Home() {
 
       <section className="mx-auto max-w-6xl px-5 py-8 sm:px-6">
         {featuredTournament ? (
-          <section className="mb-8 rounded-lg border border-rose-200 bg-white p-5 shadow-sm sm:p-6">
+          <section className="mb-8 rounded-lg border border-teal-200 bg-white p-5 shadow-sm sm:p-6">
             <div className="grid gap-5 lg:grid-cols-[1fr_auto] lg:items-center">
               <div className="min-w-0">
-                <p className="text-xs font-bold uppercase tracking-[0.16em] text-rose-700">
+                <p className="text-xs font-bold uppercase tracking-[0.16em] text-teal-700">
                   {featuredTournament.priority === "live" ? "Live now" : "Next tournament"}
                 </p>
                 <h2 className="mt-2 text-3xl font-black tracking-tight text-slate-950">
@@ -109,7 +111,8 @@ export default async function Home() {
               </div>
               <Link
                 href={`/tournaments/${featuredTournament.slug}`}
-                className="inline-flex h-11 w-fit items-center justify-center gap-2 rounded-md bg-rose-700 px-5 text-sm font-bold text-white transition hover:bg-rose-800"
+                className="inline-flex h-11 w-fit items-center justify-center gap-2 rounded-md px-5 text-sm font-bold text-slate-950 transition hover:brightness-95"
+                style={{ backgroundColor: ndscColours.mint }}
               >
                 View tournament <ArrowRight size={16} />
               </Link>
@@ -153,7 +156,7 @@ function TournamentTile({ tournament }: { tournament: TournamentCard }) {
   return (
     <Link
       href={`/tournaments/${tournament.slug}`}
-      className="group flex flex-col rounded-lg border border-slate-200 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:border-rose-200 hover:shadow-md"
+      className="group flex flex-col rounded-lg border border-slate-200 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:border-teal-200 hover:shadow-md"
     >
       <div className="flex items-start justify-between gap-3">
         <span className={`rounded-full px-2.5 py-1 text-xs font-bold uppercase ${statusStyles[tournament.status]}`}>
@@ -179,7 +182,7 @@ function TournamentTile({ tournament }: { tournament: TournamentCard }) {
         <MiniStat icon={Trophy} label="Pitches" value={`${tournament.pitches.length}`} />
       </div>
 
-      <span className="mt-5 inline-flex items-center gap-2 text-sm font-bold text-rose-700 transition group-hover:text-rose-900">
+      <span className="mt-5 inline-flex items-center gap-2 text-sm font-bold text-teal-700 transition group-hover:text-teal-900">
         Open tournament <ArrowRight size={16} />
       </span>
     </Link>

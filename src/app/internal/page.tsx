@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ArrowLeft, ArrowRight, CalendarDays, Medal, Trophy, type LucideIcon } from "lucide-react";
 
+import { ndscColours } from "@/lib/ndsc-theme";
 import { getInternalSeasonLeaderboard } from "@/lib/tournaments/data";
 import { formatDate } from "@/lib/tournaments/format";
 
@@ -15,25 +16,25 @@ export default async function InternalSeasonPage() {
   const topFemaleMvp = femaleMvpRows[0];
 
   return (
-    <main className="min-h-screen bg-[#f8fafc]">
-      <section className="border-b border-slate-200 bg-white">
+    <main className="min-h-screen" style={{ backgroundColor: ndscColours.page }}>
+      <section className="border-b border-slate-800 text-white" style={{ backgroundColor: ndscColours.navy }}>
         <div className="mx-auto max-w-6xl px-5 py-8 sm:px-6 lg:py-10">
-          <Link href="/" className="inline-flex items-center gap-2 text-sm font-semibold text-slate-600 hover:text-slate-950">
+          <Link href="/" className="inline-flex items-center gap-2 text-sm font-semibold text-slate-300 hover:text-white">
             <ArrowLeft size={16} /> Club tournaments
           </Link>
           <div className="mt-7 grid gap-6 lg:grid-cols-[1fr_360px] lg:items-end">
             <div>
-              <p className="text-sm font-semibold uppercase tracking-[0.18em] text-rose-700">
+              <p className="text-sm font-semibold uppercase tracking-[0.18em]" style={{ color: ndscColours.mint }}>
                 NDSC internal league
               </p>
-              <h1 className="mt-3 text-4xl font-black tracking-tight text-slate-950 sm:text-5xl">
+              <h1 className="mt-3 text-4xl font-black tracking-tight text-white sm:text-5xl">
                 {season.seasonYear} Season
               </h1>
-              <p className="mt-4 max-w-2xl text-lg leading-8 text-slate-600">
+              <p className="mt-4 max-w-2xl text-lg leading-8 text-slate-300">
                 Yearly team points and MVP leaderboards from internal NDSC tournaments.
               </p>
             </div>
-            <div className="grid gap-3 rounded-lg border border-slate-200 bg-slate-50 p-4">
+            <div className="grid gap-3 rounded-lg border border-white/10 bg-white/5 p-4">
               <Stat icon={Trophy} label="Current leader" value={champion?.teamName ?? "TBC"} />
               <Stat icon={Medal} label="Total male MVP" value={formatMvpLeader(topMaleMvp)} />
               <Stat icon={Medal} label="Total female MVP" value={formatMvpLeader(topFemaleMvp)} />
@@ -101,12 +102,12 @@ export default async function InternalSeasonPage() {
                 <Link
                   key={event.id}
                   href={`/tournaments/${event.slug}`}
-                  className="group rounded-lg border border-slate-200 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:border-rose-200 hover:shadow-md"
+                  className="group rounded-lg border border-slate-200 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:border-teal-200 hover:shadow-md"
                 >
-                  <p className="text-xs font-bold uppercase text-rose-700">{event.status}</p>
+                  <p className="text-xs font-bold uppercase text-teal-700">{event.status}</p>
                   <h3 className="mt-2 text-xl font-black text-slate-950">{event.name}</h3>
                   <p className="mt-2 text-sm font-semibold text-slate-600">{formatDate(event.date)}</p>
-                  <p className="mt-4 inline-flex items-center gap-2 text-sm font-bold text-rose-700 group-hover:text-rose-900">
+                  <p className="mt-4 inline-flex items-center gap-2 text-sm font-bold text-teal-700 group-hover:text-teal-900">
                     Open tournament <ArrowRight size={16} />
                   </p>
                 </Link>
@@ -135,10 +136,10 @@ function formatMvpLeader(row?: { playerName: string; votes: number }) {
 function Stat({ icon: Icon, label, value }: { icon: LucideIcon; label: string; value: string }) {
   return (
     <div className="flex items-center gap-3">
-      <Icon size={18} className="text-slate-500" />
+      <Icon size={18} style={{ color: ndscColours.mint }} />
       <div>
-        <p className="text-xs font-bold uppercase text-slate-500">{label}</p>
-        <p className="text-sm font-black text-slate-950">{value}</p>
+        <p className="text-xs font-bold uppercase text-slate-300">{label}</p>
+        <p className="text-sm font-black text-white">{value}</p>
       </div>
     </div>
   );

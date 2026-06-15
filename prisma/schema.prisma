@@ -26,8 +26,6 @@ model Tournament {
   winPoints         Int       @default(3) @map("win_points")
   drawPoints        Int       @default(1) @map("draw_points")
   lossPoints        Int       @default(0) @map("loss_points")
-  brandPrimary      String    @default("#be123c") @map("brand_primary")
-  brandSecondary    String    @default("#0f172a") @map("brand_secondary")
   announcements     String[]  @default([])
   createdAt         DateTime  @default(now()) @map("created_at")
   updatedAt         DateTime  @updatedAt @map("updated_at")
