@@ -1,9 +1,15 @@
 import Link from "next/link";
-import { ArrowLeft, LogOut, Shield, Trophy } from "lucide-react";
+import { ArrowLeft, LogOut, Shield, Trophy, UserRound, Users } from "lucide-react";
 
 import { logout } from "@/app/admin/login/actions";
+import { canManageAdminUsers, getCurrentAdminUser } from "@/lib/current-admin";
 
-export default function AdminLayout({ children }: { children: React.ReactNode }) {
+export default async function AdminLayout({ children }: { children: React.ReactNode }) {
+  const [currentUser, canManageUsers] = await Promise.all([
+    getCurrentAdminUser(),
+    canManageAdminUsers(),
+  ]);
+
   return (
     <div className="min-h-screen bg-slate-100">
       <header className="border-b border-slate-200 bg-white">
@@ -32,6 +38,22 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               <Trophy size={16} />
               Tournaments
             </Link>
+            <Link
+              href="/admin/account"
+              className="inline-flex h-9 items-center gap-2 rounded-md border border-slate-300 px-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+            >
+              <UserRound size={16} />
+              {currentUser?.name ?? "Account"}
+            </Link>
+            {canManageUsers ? (
+              <Link
+                href="/admin/users"
+                className="inline-flex h-9 items-center gap-2 rounded-md border border-slate-300 px-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+              >
+                <Users size={16} />
+                Users
+              </Link>
+            ) : null}
             <form action={logout}>
               <button className="inline-flex h-9 items-center gap-2 rounded-md bg-slate-950 px-3 text-sm font-semibold text-white transition hover:bg-slate-800">
                 <LogOut size={16} />

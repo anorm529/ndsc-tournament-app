@@ -4,6 +4,7 @@ import { refresh, revalidatePath } from "next/cache";
 
 import { prisma } from "@/lib/db";
 import { ActionState, errorState, successState } from "@/lib/action-state";
+import { writeAuditLog } from "@/lib/audit";
 import { calculateStandings } from "@/lib/tournaments/standings";
 import { Fixture, MvpCategory, Team, Tournament } from "@/lib/tournaments/types";
 
@@ -238,6 +239,7 @@ export async function deleteMvpVote(_state: ActionState, formData: FormData) {
       where: { id: voteId },
       select: {
         playerName: true,
+        tournamentId: true,
         tournament: {
           select: { slug: true },
         },
@@ -246,6 +248,13 @@ export async function deleteMvpVote(_state: ActionState, formData: FormData) {
 
     await prisma.mvpVote.delete({
       where: { id: voteId },
+    });
+    await writeAuditLog({
+      tournamentId: vote.tournamentId,
+      entityType: "mvp_vote",
+      entityId: voteId,
+      action: "delete",
+      summary: `${vote.playerName}'s MVP vote was deleted.`,
     });
 
     revalidateResultPages(vote.tournament.slug);
@@ -266,11 +275,17 @@ export async function deleteTournamentMvpVotes(_state: ActionState, formData: Fo
 
     const tournament = await prisma.tournament.findUniqueOrThrow({
       where: { id: tournamentId },
-      select: { name: true, slug: true },
+      select: { id: true, name: true, slug: true },
     });
 
     const deleted = await prisma.mvpVote.deleteMany({
       where: { tournamentId },
+    });
+    await writeAuditLog({
+      tournamentId: tournament.id,
+      entityType: "mvp_vote",
+      action: "delete_all",
+      summary: `${deleted.count} MVP vote${deleted.count === 1 ? "" : "s"} deleted.`,
     });
 
     revalidateResultPages(tournament.slug);
