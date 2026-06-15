@@ -2,7 +2,7 @@ import { Standing } from "@/lib/tournaments/types";
 
 export function StandingsTable({ rows, compact = false }: { rows: Standing[]; compact?: boolean }) {
   return (
-    <div className="overflow-x-auto">
+    <div className="max-w-full overflow-x-auto">
       <table className="w-full min-w-[680px] text-left text-sm">
         <thead className="border-b border-slate-200 text-xs uppercase text-slate-500">
           <tr>

@@ -15,6 +15,7 @@ import {
 
 import { AutoRefresh } from "@/components/tournaments/auto-refresh";
 import { MvpLeaderboard } from "@/components/tournaments/mvp-leaderboard";
+import { ShareButton } from "@/components/tournaments/share-button";
 import { StandingsTable } from "@/components/tournaments/standings-table";
 import { ndscColours, ndscHeroGradient } from "@/lib/ndsc-theme";
 import { getTournamentBundle, getTournaments } from "@/lib/tournaments/data";
@@ -56,31 +57,38 @@ export default async function TournamentPage({ params }: { params: Promise<{ slu
   return (
     <main className="min-h-screen text-slate-950" style={{ backgroundColor: ndscColours.warmPage }}>
       <AutoRefresh enabled={event.status !== "complete"} intervalMs={10000} />
-      <section className="text-white" style={{ background: ndscHeroGradient() }}>
-        <div className="mx-auto max-w-5xl px-5 py-6 sm:px-6 lg:py-8">
+      <section className="overflow-hidden text-white" style={{ background: ndscHeroGradient() }}>
+        <div className="mx-auto w-full max-w-5xl px-4 py-6 sm:px-6 lg:py-8">
           <Link href="/" className="inline-flex items-center gap-2 text-sm font-semibold text-slate-300 hover:text-white">
             <ArrowLeft size={16} /> All tournaments
           </Link>
           <div className="mt-7">
-            <div className="grid gap-5 lg:grid-cols-[1fr_auto] lg:items-end">
-              <div>
-              <p className="inline-flex rounded-full bg-white/15 px-3 py-1 text-xs font-bold uppercase tracking-[0.14em] text-white">
-                {event.status} tournament
-              </p>
-              <h1 className="mt-2 text-4xl font-black tracking-tight sm:text-5xl">{event.name}</h1>
-              <p className="mt-3 max-w-2xl text-base leading-7 text-white/90 sm:text-lg">
-                Schedule, live standings, results, playoffs, and MVP leaders for the club tournament day.
-              </p>
+            <div className="grid min-w-0 gap-5 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
+              <div className="min-w-0">
+                <p className="inline-flex rounded-full bg-white/15 px-3 py-1 text-xs font-bold uppercase tracking-[0.14em] text-white">
+                  {event.status} tournament
+                </p>
+                <h1 className="mt-2 break-words text-4xl font-black tracking-tight sm:text-5xl">{event.name}</h1>
+                <p className="mt-3 max-w-2xl text-base leading-7 text-white/90 sm:text-lg">
+                  Schedule, live standings, results, playoffs, and MVP leaders for the club tournament day.
+                </p>
               </div>
-              {event.schedulePublished ? (
-                <Link
-                  href={`/tournaments/${event.slug}/live`}
-                  className="inline-flex h-11 w-fit items-center justify-center gap-2 rounded-md px-4 text-sm font-black text-slate-950 transition hover:brightness-95"
-                  style={{ backgroundColor: ndscColours.mint }}
-                >
-                  <MonitorUp size={16} /> Live board
-                </Link>
-              ) : null}
+              <div className="flex flex-wrap gap-2">
+                <ShareButton
+                  className="bg-white/15 text-white"
+                  text={`Follow ${event.name}: schedule, results, standings, and playoff updates.`}
+                  title={event.name}
+                />
+                {event.schedulePublished ? (
+                  <Link
+                    href={`/tournaments/${event.slug}/live`}
+                    className="inline-flex h-11 items-center justify-center gap-2 rounded-md px-4 text-sm font-black text-slate-950 transition hover:brightness-95"
+                    style={{ backgroundColor: ndscColours.mint }}
+                  >
+                    <MonitorUp size={16} /> Live board
+                  </Link>
+                ) : null}
+              </div>
             </div>
             <div className="mt-6 grid gap-2 sm:grid-cols-3">
               <Info icon={CalendarDays} label={formatDate(event.date)} />
@@ -94,9 +102,9 @@ export default async function TournamentPage({ params }: { params: Promise<{ slu
         </div>
       </section>
 
-      <section className="mx-auto grid max-w-6xl gap-5 px-5 py-6 sm:px-6 lg:grid-cols-[minmax(0,1.35fr)_380px]">
-        <div className="space-y-5">
-          <nav className="flex gap-2 overflow-x-auto rounded-lg border border-slate-200 bg-white p-2 shadow-sm">
+      <section className="mx-auto grid w-full max-w-6xl gap-5 overflow-hidden px-4 py-6 sm:px-6 lg:grid-cols-[minmax(0,1.35fr)_380px]">
+        <div className="min-w-0 space-y-5">
+          <nav className="flex max-w-full gap-2 overflow-x-auto rounded-lg border border-slate-200 bg-white p-2 shadow-sm">
             <TabLink href="#overview" label="Overview" />
             <TabLink href="#schedule" label="Schedule" />
             <TabLink href="#standings" label={hasFinalPlacements ? "Placements" : "Standings"} />
@@ -142,7 +150,7 @@ export default async function TournamentPage({ params }: { params: Promise<{ slu
           ) : null}
         </div>
 
-        <aside id="overview" className="space-y-5 lg:sticky lg:top-5 lg:self-start">
+        <aside id="overview" className="min-w-0 space-y-5 lg:sticky lg:top-5 lg:self-start">
           <section className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
             <h2 className="text-lg font-bold">At a Glance</h2>
             <div className="mt-4 grid gap-3">
@@ -265,9 +273,9 @@ function FullDaySchedule({
   }, []);
 
   return (
-    <div className="mt-4 grid gap-3 xl:grid-cols-2">
+    <div className="mt-4 grid min-w-0 gap-3 xl:grid-cols-2">
       {groupedItems.map((group) => (
-        <section key={group.startsAt} className="rounded-lg border border-slate-200 bg-slate-50 p-3">
+        <section key={group.startsAt} className="min-w-0 rounded-lg border border-slate-200 bg-slate-50 p-3">
           <div className="mb-3 flex items-center justify-between gap-3">
             <p className="text-sm font-black text-slate-950">{formatTime(group.startsAt)}</p>
             <p className="text-xs font-bold uppercase text-slate-500">
@@ -295,7 +303,7 @@ function FullDaySchedule({
 
 function PublicPlannedPlayoff({ match }: { match: BracketMatch }) {
   return (
-    <article className="rounded-md border border-teal-200 bg-white p-3">
+    <article className="min-w-0 rounded-md border border-teal-200 bg-white p-3">
       <div className="flex items-center justify-between gap-3 text-xs font-bold uppercase text-teal-700">
         <span>{match.pitch}</span>
         <span>Playoff</span>
@@ -310,7 +318,7 @@ function PublicPlannedPlayoff({ match }: { match: BracketMatch }) {
 
 function PublicScheduleBlock({ block }: { block: ScheduleBlock }) {
   return (
-    <article className="rounded-md border border-amber-200 bg-amber-50 p-3">
+    <article className="min-w-0 rounded-md border border-amber-200 bg-amber-50 p-3">
       <p className="text-xs font-bold uppercase text-amber-700">
         {formatTime(block.startsAt)}-{formatTime(block.endsAt)}
       </p>
@@ -323,19 +331,19 @@ function MiniFixtureCard({ fixture, teams }: { fixture: Fixture; teams: Team[] }
   const complete = isFixtureComplete(fixture);
 
   return (
-    <article className="rounded-md border border-slate-200 bg-white p-3">
+    <article className="min-w-0 rounded-md border border-slate-200 bg-white p-3">
       <div className="flex items-center justify-between gap-3 text-xs font-bold uppercase text-slate-500">
         <span>{getFixtureStageLabel(fixture.stage)}</span>
         <span>{fixture.pitch}</span>
       </div>
-      <div className="mt-3 grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2">
-        <span className="truncate text-right text-sm font-bold text-slate-950">
+      <div className="mt-3 grid min-w-0 grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2">
+        <span className="min-w-0 break-words text-right text-sm font-bold text-slate-950">
           {teamName(teams, fixture.homeTeamId)}
         </span>
-        <span className="min-w-14 rounded bg-slate-950 px-2.5 py-1.5 text-center text-sm font-black text-white">
+        <span className="min-w-12 shrink-0 rounded bg-slate-950 px-2.5 py-1.5 text-center text-sm font-black text-white">
           {complete ? `${fixture.homeRuns}-${fixture.awayRuns}` : "vs"}
         </span>
-        <span className="truncate text-sm font-bold text-slate-950">
+        <span className="min-w-0 break-words text-sm font-bold text-slate-950">
           {teamName(teams, fixture.awayTeamId)}
         </span>
       </div>
@@ -357,9 +365,9 @@ function getFixtureStageLabel(stage: Fixture["stage"]) {
 
 function Info({ icon: Icon, label }: { icon: LucideIcon; label: string }) {
   return (
-    <div className="flex min-h-11 items-center gap-3 rounded-md bg-white/10 px-3 py-2 text-sm font-semibold text-white">
+    <div className="flex min-h-11 min-w-0 items-center gap-3 rounded-md bg-white/10 px-3 py-2 text-sm font-semibold text-white">
       <Icon size={17} className="shrink-0" />
-      <span>{label}</span>
+      <span className="min-w-0 break-words">{label}</span>
     </div>
   );
 }
@@ -400,7 +408,7 @@ function SnapshotCard({
   value: string;
 }) {
   return (
-    <div className="rounded-md border border-slate-200 bg-slate-50 p-3">
+    <div className="min-w-0 rounded-md border border-slate-200 bg-slate-50 p-3">
       <div className="flex items-center gap-2 text-slate-500">
         <Icon size={16} />
         <span className="text-[11px] font-bold uppercase">{label}</span>
@@ -413,17 +421,17 @@ function SnapshotCard({
 
 function ResultRow({ fixture, teams }: { fixture: Fixture; teams: Team[] }) {
   return (
-    <div className="rounded-md border border-slate-200 bg-slate-50 p-3">
+    <div className="min-w-0 rounded-md border border-slate-200 bg-slate-50 p-3">
       <div className="flex items-center justify-between gap-3 text-xs font-bold uppercase text-slate-500">
         <span>{formatTime(fixture.startsAt)}</span>
         <span>{fixture.pitch}</span>
       </div>
-      <div className="mt-3 grid grid-cols-[1fr_auto_1fr] items-center gap-2 text-sm font-bold text-slate-950">
-        <span className="truncate text-right">{teamName(teams, fixture.homeTeamId)}</span>
-        <span className="rounded bg-slate-950 px-2.5 py-1.5 text-white">
+      <div className="mt-3 grid min-w-0 grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2 text-sm font-bold text-slate-950">
+        <span className="min-w-0 break-words text-right">{teamName(teams, fixture.homeTeamId)}</span>
+        <span className="shrink-0 rounded bg-slate-950 px-2.5 py-1.5 text-white">
           {fixture.homeRuns}-{fixture.awayRuns}
         </span>
-        <span className="truncate">{teamName(teams, fixture.awayTeamId)}</span>
+        <span className="min-w-0 break-words">{teamName(teams, fixture.awayTeamId)}</span>
       </div>
     </div>
   );
@@ -454,7 +462,7 @@ function PlayoffPanel({
   }
 
   return (
-    <section className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+    <section className="min-w-0 rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
       <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <h2 className="text-xl font-bold">Playoffs</h2>
@@ -464,13 +472,13 @@ function PlayoffPanel({
           {placementFixtures.length || bracket.length} games
         </span>
       </div>
-      <div className="mt-4 grid gap-3 md:grid-cols-2">
+      <div className="mt-4 grid min-w-0 gap-3 md:grid-cols-2">
         {placementFixtures.length > 0
           ? placementFixtures.map((fixture) => (
               <MiniFixtureCard key={fixture.id} fixture={fixture} teams={teams} />
             ))
           : bracket.map((match) => (
-              <div key={match.id} className="rounded-md border border-slate-200 p-3">
+              <div key={match.id} className="min-w-0 rounded-md border border-slate-200 p-3">
                 <div className="flex items-center justify-between gap-3 text-xs font-semibold uppercase text-slate-500">
                   <span>{match.label}</span>
                   <span>{formatTime(match.startsAt)}</span>

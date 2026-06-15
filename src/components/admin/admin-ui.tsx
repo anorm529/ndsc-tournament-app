@@ -10,9 +10,9 @@ export function PageHeader({
   action?: React.ReactNode;
 }) {
   return (
-    <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight text-slate-950">{title}</h1>
+    <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+      <div className="min-w-0">
+        <h1 className="break-words text-2xl font-bold tracking-tight text-slate-950">{title}</h1>
         <p className="mt-1 text-sm text-slate-600">{description}</p>
       </div>
       {action}
@@ -32,7 +32,7 @@ export function Stat({
   detail?: string;
 }) {
   return (
-    <div className="rounded-lg border border-slate-200 bg-white p-4">
+    <div className="min-w-0 rounded-lg border border-slate-200 bg-white p-4">
       <div className="flex items-center gap-2 text-slate-500">
         <Icon size={18} />
         <span className="text-xs font-semibold uppercase">{label}</span>
@@ -53,12 +53,12 @@ export function Panel({
   action?: React.ReactNode;
 }) {
   return (
-    <section className="rounded-lg border border-slate-200 bg-white p-5">
-      <div className="flex items-center justify-between gap-3">
+    <section className="min-w-0 rounded-lg border border-slate-200 bg-white p-5">
+      <div className="flex min-w-0 items-center justify-between gap-3">
         <h2 className="text-base font-semibold text-slate-950">{title}</h2>
         {action}
       </div>
-      <div className="mt-4">{children}</div>
+      <div className="mt-4 min-w-0">{children}</div>
     </section>
   );
 }

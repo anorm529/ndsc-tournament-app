@@ -60,8 +60,8 @@ export default async function AdminTournamentLayout({
   const baseHref = `/admin/tournaments/${tournament.slug}`;
 
   return (
-    <div className="space-y-5">
-      <section className="rounded-lg border border-slate-200 bg-white p-4">
+    <div className="min-w-0 space-y-5">
+      <section className="min-w-0 rounded-lg border border-slate-200 bg-white p-4">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="min-w-0">
             <p className="text-xs font-semibold uppercase text-slate-500">Managing tournament</p>
@@ -84,8 +84,8 @@ export default async function AdminTournamentLayout({
         </div>
       </section>
 
-      <div className="grid gap-5 lg:grid-cols-[220px_1fr]">
-        <nav className="flex gap-3 overflow-x-auto rounded-lg border border-slate-200 bg-white p-2 lg:block lg:space-y-4">
+      <div className="grid min-w-0 gap-5 lg:grid-cols-[220px_minmax(0,1fr)]">
+        <nav className="flex max-w-full gap-3 overflow-x-auto rounded-lg border border-slate-200 bg-white p-2 lg:block lg:space-y-4">
           {navGroups.map((group) => (
             <div key={group.label} className="flex shrink-0 gap-2 lg:block lg:space-y-1">
               <p className="hidden px-3 text-[0.68rem] font-bold uppercase tracking-[0.14em] text-slate-400 lg:block">
@@ -109,7 +109,7 @@ export default async function AdminTournamentLayout({
             </div>
           ))}
         </nav>
-        <main>{children}</main>
+        <main className="min-w-0">{children}</main>
       </div>
     </div>
   );

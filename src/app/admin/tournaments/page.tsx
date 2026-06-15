@@ -18,7 +18,7 @@ export default async function AdminTournamentsPage() {
   ]);
 
   return (
-    <div className="space-y-5">
+    <div className="min-w-0 space-y-5">
       <PageHeader
         title="Tournaments"
         description="Create events, draft settings, and keep an archive of past one-day tournaments."
@@ -56,8 +56,8 @@ export default async function AdminTournamentsPage() {
       )}
 
       <div>
-        <div className="flex items-end justify-between gap-3">
-          <div>
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+          <div className="min-w-0">
             <h2 className="text-lg font-bold text-slate-950">Tournament Index</h2>
             <p className="mt-1 text-sm text-slate-600">Pick the event you want, then manage its teams, schedule, scores, and settings.</p>
           </div>
@@ -71,7 +71,7 @@ export default async function AdminTournamentsPage() {
             No tournaments yet. Create the first one above.
           </div>
         ) : (
-          <div className="mt-4 grid gap-4 xl:grid-cols-2">
+          <div className="mt-4 grid min-w-0 gap-4 xl:grid-cols-2">
             {tournaments.map((event) => (
               <TournamentAdminCard canManageTournaments={canManageTournaments} key={event.id} event={event} />
             ))}
@@ -90,7 +90,7 @@ function TournamentAdminCard({
   event: TournamentCard;
 }) {
   return (
-    <article className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+    <article className="min-w-0 rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
@@ -104,30 +104,33 @@ function TournamentAdminCard({
               </span>
             )}
           </div>
-          <h3 className="mt-3 truncate text-2xl font-bold text-slate-950">{event.name}</h3>
+          <h3 className="mt-3 break-words text-2xl font-bold text-slate-950">{event.name}</h3>
           <div className="mt-3 grid gap-2 text-sm font-medium text-slate-600">
-            <span className="inline-flex items-center gap-2">
-              <CalendarDays size={16} /> {formatDate(event.date)}
+            <span className="inline-flex min-w-0 items-center gap-2">
+              <CalendarDays size={16} className="shrink-0" /> <span className="min-w-0 break-words">{formatDate(event.date)}</span>
             </span>
-            <span className="inline-flex items-center gap-2">
-              <MapPin size={16} /> {event.venue}
+            <span className="inline-flex min-w-0 items-center gap-2">
+              <MapPin size={16} className="shrink-0" /> <span className="min-w-0 break-words">{event.venue}</span>
             </span>
-            <span className="inline-flex items-center gap-2">
-              <Shield size={16} /> {formatLabel(event.format)} · {event.gameMinutes} min games
-              {event.slotGapMinutes > 0 ? ` + ${event.slotGapMinutes} min gap` : ""}
+            <span className="inline-flex min-w-0 items-center gap-2">
+              <Shield size={16} className="shrink-0" />
+              <span className="min-w-0 break-words">
+                {formatLabel(event.format)} · {event.gameMinutes} min games
+                {event.slotGapMinutes > 0 ? ` + ${event.slotGapMinutes} min gap` : ""}
+              </span>
             </span>
           </div>
         </div>
 
-        <div className="flex shrink-0 flex-wrap gap-2">
+        <div className="flex w-full flex-wrap gap-2 sm:w-auto sm:shrink-0">
           <Link
-            className="inline-flex h-10 items-center justify-center gap-2 rounded-md bg-slate-950 px-4 text-sm font-semibold text-white transition hover:bg-slate-800"
+            className="inline-flex h-10 flex-1 items-center justify-center gap-2 rounded-md bg-slate-950 px-4 text-sm font-semibold text-white transition hover:bg-slate-800 sm:flex-none"
             href={`/admin/tournaments/${event.slug}`}
           >
             <Settings size={16} /> Manage
           </Link>
           <Link
-            className="inline-flex h-10 items-center justify-center gap-2 rounded-md border border-slate-300 px-4 text-sm font-semibold text-slate-700 transition hover:border-slate-400 hover:text-slate-950"
+            className="inline-flex h-10 flex-1 items-center justify-center gap-2 rounded-md border border-slate-300 px-4 text-sm font-semibold text-slate-700 transition hover:border-slate-400 hover:text-slate-950 sm:flex-none"
             href={`/tournaments/${event.slug}`}
           >
             <Eye size={16} /> Public
@@ -198,7 +201,7 @@ function MiniStat({
   value: string;
 }) {
   return (
-    <div className="rounded-md bg-slate-50 p-3">
+    <div className="min-w-0 rounded-md bg-slate-50 p-3">
       <div className="flex items-center gap-2 text-xs font-bold uppercase text-slate-500">
         {icon}
         {label}

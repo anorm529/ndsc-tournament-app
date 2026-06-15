@@ -23,7 +23,7 @@ export default async function AdminTournamentDashboard({
   );
 
   return (
-    <div className="space-y-5">
+    <div className="min-w-0 space-y-5">
       <PageHeader title="Dashboard" description={`${tournament.name} - ${formatDate(tournament.date)}`} />
 
       <div className="grid gap-4 md:grid-cols-4">
@@ -33,7 +33,7 @@ export default async function AdminTournamentDashboard({
         <Stat icon={ClipboardCheck} label="Results" value={`${completed.length}/${fixtures.length}`} detail="Scores entered" />
       </div>
 
-      <section className="grid gap-5 xl:grid-cols-[1fr_360px]">
+      <section className="grid min-w-0 gap-5 xl:grid-cols-[minmax(0,1fr)_360px]">
         <Panel title="Live Standings">
           <StandingsTable rows={standings} compact />
         </Panel>
