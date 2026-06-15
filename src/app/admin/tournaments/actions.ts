@@ -4,10 +4,13 @@ import { refresh, revalidatePath } from "next/cache";
 
 import { prisma } from "@/lib/db";
 import { ActionState, errorState, successState } from "@/lib/action-state";
+import { requireMinimumRole } from "@/lib/current-admin";
 import { Tournament } from "@/lib/tournaments/types";
 
 export async function createTournament(_state: ActionState, formData: FormData) {
   try {
+    await requireMinimumRole("tournament_admin");
+
     const data = readTournamentForm(formData);
     const pitches = readLines(formData, "pitches");
 
@@ -34,6 +37,8 @@ export async function createTournament(_state: ActionState, formData: FormData) 
 
 export async function updateTournament(_state: ActionState, formData: FormData) {
   try {
+    await requireMinimumRole("tournament_admin");
+
     const tournamentId = requireText(formData, "tournamentId");
     const data = readTournamentForm(formData);
     const pitches = readLines(formData, "pitches");
@@ -108,6 +113,8 @@ export async function updateTournament(_state: ActionState, formData: FormData) 
 
 export async function deleteTournament(_state: ActionState, formData: FormData) {
   try {
+    await requireMinimumRole("tournament_admin");
+
     const tournamentId = requireText(formData, "tournamentId");
 
     const tournament = await prisma.tournament.findUniqueOrThrow({
@@ -129,6 +136,8 @@ export async function deleteTournament(_state: ActionState, formData: FormData) 
 
 export async function deleteTournamentPlayers(_state: ActionState, formData: FormData) {
   try {
+    await requireMinimumRole("tournament_admin");
+
     const tournamentId = requireText(formData, "tournamentId");
 
     const tournament = await prisma.tournament.findUniqueOrThrow({

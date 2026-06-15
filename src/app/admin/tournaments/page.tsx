@@ -4,6 +4,7 @@ import { CalendarDays, Eye, MapPin, Pencil, Plus, Settings, Shield, Trash2, Trop
 
 import { ActionForm, ConfirmSubmitButton } from "@/components/admin/action-form";
 import { ButtonShell, PageHeader, Panel } from "@/components/admin/admin-ui";
+import { canUseMinimumRole } from "@/lib/current-admin";
 import { getTournamentCards } from "@/lib/tournaments/data";
 import { TournamentCard } from "@/lib/tournaments/types";
 import { createTournament, deleteTournament, updateTournament } from "./actions";
@@ -11,7 +12,10 @@ import { createTournament, deleteTournament, updateTournament } from "./actions"
 export const dynamic = "force-dynamic";
 
 export default async function AdminTournamentsPage() {
-  const tournaments = await getTournamentCards();
+  const [tournaments, canManageTournaments] = await Promise.all([
+    getTournamentCards(),
+    canUseMinimumRole("tournament_admin"),
+  ]);
 
   return (
     <div className="space-y-5">
@@ -20,28 +24,36 @@ export default async function AdminTournamentsPage() {
         description="Create events, draft settings, and keep an archive of past one-day tournaments."
       />
 
-      <Panel title="Create Tournament">
-        <ActionForm action={createTournament} className="space-y-4">
-          <TournamentFields
-            defaults={{
-              city: "Bangor",
-              drawPoints: "1",
-              format: "round-robin",
-              gameMinutes: "45",
-              lossPoints: "0",
-              mvpMode: "overall",
-              pitches: "Diamond 1\nDiamond 2",
-              seasonYear: `${new Date().getFullYear()}`,
-              slotGapMinutes: "0",
-              status: "draft",
-              tournamentType: "public",
-              venue: "Ward Park, Bangor",
-              winPoints: "3",
-            }}
-          />
-          <ButtonShell><Plus size={16} /> Create tournament</ButtonShell>
-        </ActionForm>
-      </Panel>
+      {canManageTournaments ? (
+        <Panel title="Create Tournament">
+          <ActionForm action={createTournament} className="space-y-4">
+            <TournamentFields
+              defaults={{
+                city: "Bangor",
+                drawPoints: "1",
+                format: "round-robin",
+                gameMinutes: "45",
+                lossPoints: "0",
+                mvpMode: "overall",
+                pitches: "Diamond 1\nDiamond 2",
+                seasonYear: `${new Date().getFullYear()}`,
+                slotGapMinutes: "0",
+                status: "draft",
+                tournamentType: "public",
+                venue: "Ward Park, Bangor",
+                winPoints: "3",
+              }}
+            />
+            <ButtonShell><Plus size={16} /> Create tournament</ButtonShell>
+          </ActionForm>
+        </Panel>
+      ) : (
+        <Panel title="Tournament Access">
+          <p className="text-sm font-medium text-slate-600">
+            Your role can view tournaments and enter results, but only tournament admins and owners can create, edit, or delete tournaments.
+          </p>
+        </Panel>
+      )}
 
       <div>
         <div className="flex items-end justify-between gap-3">
@@ -61,7 +73,7 @@ export default async function AdminTournamentsPage() {
         ) : (
           <div className="mt-4 grid gap-4 xl:grid-cols-2">
             {tournaments.map((event) => (
-              <TournamentAdminCard key={event.id} event={event} />
+              <TournamentAdminCard canManageTournaments={canManageTournaments} key={event.id} event={event} />
             ))}
           </div>
         )}
@@ -70,7 +82,13 @@ export default async function AdminTournamentsPage() {
   );
 }
 
-function TournamentAdminCard({ event }: { event: TournamentCard }) {
+function TournamentAdminCard({
+  canManageTournaments,
+  event,
+}: {
+  canManageTournaments: boolean;
+  event: TournamentCard;
+}) {
   return (
     <article className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
@@ -123,47 +141,49 @@ function TournamentAdminCard({ event }: { event: TournamentCard }) {
         <MiniStat icon={<MapPin size={16} />} label="Pitches" value={`${event.pitches.length}`} />
       </div>
 
-      <details className="mt-5 border-t border-slate-100 pt-4">
-        <summary className="inline-flex cursor-pointer list-none items-center gap-2 text-sm font-bold text-slate-700 transition hover:text-slate-950">
-          <Pencil size={16} /> Edit settings
-        </summary>
-        <div className="mt-4 rounded-md border border-slate-200 bg-slate-50 p-4">
-          <ActionForm action={updateTournament} className="space-y-4">
-            <input name="tournamentId" type="hidden" value={event.id} />
-            <TournamentFields
-              defaults={{
-                announcements: event.announcements.join("\n"),
-                checkInAt: toDatetimeLocalInput(event.checkInTime),
-                city: event.city,
-                drawPoints: `${event.points.draw}`,
-                format: event.format,
-                gameMinutes: `${event.gameMinutes}`,
-                lossPoints: `${event.points.loss}`,
-                mvpMode: event.mvpMode,
-                name: event.name,
-                pitches: event.pitches.join("\n"),
-                seasonYear: `${event.seasonYear}`,
-                slug: event.slug,
-                slotGapMinutes: `${event.slotGapMinutes}`,
-                startsOn: toDateInput(event.date),
-                status: event.status,
-                tournamentType: event.tournamentType,
-                venue: event.venue,
-                winPoints: `${event.points.win}`,
-              }}
-            />
-            <ButtonShell><Pencil size={16} /> Save changes</ButtonShell>
-          </ActionForm>
-          <ActionForm action={deleteTournament} className="mt-4 border-t border-slate-200 pt-4">
-            <input name="tournamentId" type="hidden" value={event.id} />
-            <ConfirmSubmitButton
-              confirmMessage={`Delete ${event.name}? This also deletes its teams, fixtures, scores, MVP votes, pitches, and bracket data.`}
-            >
-              <Trash2 size={16} /> Delete tournament
-            </ConfirmSubmitButton>
-          </ActionForm>
-        </div>
-      </details>
+      {canManageTournaments ? (
+        <details className="mt-5 border-t border-slate-100 pt-4">
+          <summary className="inline-flex cursor-pointer list-none items-center gap-2 text-sm font-bold text-slate-700 transition hover:text-slate-950">
+            <Pencil size={16} /> Edit settings
+          </summary>
+          <div className="mt-4 rounded-md border border-slate-200 bg-slate-50 p-4">
+            <ActionForm action={updateTournament} className="space-y-4">
+              <input name="tournamentId" type="hidden" value={event.id} />
+              <TournamentFields
+                defaults={{
+                  announcements: event.announcements.join("\n"),
+                  checkInAt: toDatetimeLocalInput(event.checkInTime),
+                  city: event.city,
+                  drawPoints: `${event.points.draw}`,
+                  format: event.format,
+                  gameMinutes: `${event.gameMinutes}`,
+                  lossPoints: `${event.points.loss}`,
+                  mvpMode: event.mvpMode,
+                  name: event.name,
+                  pitches: event.pitches.join("\n"),
+                  seasonYear: `${event.seasonYear}`,
+                  slug: event.slug,
+                  slotGapMinutes: `${event.slotGapMinutes}`,
+                  startsOn: toDateInput(event.date),
+                  status: event.status,
+                  tournamentType: event.tournamentType,
+                  venue: event.venue,
+                  winPoints: `${event.points.win}`,
+                }}
+              />
+              <ButtonShell><Pencil size={16} /> Save changes</ButtonShell>
+            </ActionForm>
+            <ActionForm action={deleteTournament} className="mt-4 border-t border-slate-200 pt-4">
+              <input name="tournamentId" type="hidden" value={event.id} />
+              <ConfirmSubmitButton
+                confirmMessage={`Delete ${event.name}? This also deletes its teams, fixtures, scores, MVP votes, pitches, and bracket data.`}
+              >
+                <Trash2 size={16} /> Delete tournament
+              </ConfirmSubmitButton>
+            </ActionForm>
+          </div>
+        </details>
+      ) : null}
     </article>
   );
 }

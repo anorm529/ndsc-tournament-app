@@ -3,10 +3,13 @@
 import { refresh, revalidatePath } from "next/cache";
 
 import { ActionState, errorState, successState } from "@/lib/action-state";
+import { requireMinimumRole } from "@/lib/current-admin";
 import { prisma } from "@/lib/db";
 
 export async function toggleTeamCheckIn(_state: ActionState, formData: FormData) {
   try {
+    await requireMinimumRole("scorekeeper");
+
     const teamId = requireText(formData, "teamId");
     const checkedIn = formData.get("checkedIn") === "true";
     const team = await prisma.team.update({
@@ -32,6 +35,8 @@ export async function toggleTeamCheckIn(_state: ActionState, formData: FormData)
 
 export async function createUmpire(_state: ActionState, formData: FormData) {
   try {
+    await requireMinimumRole("tournament_admin");
+
     const tournamentId = requireText(formData, "tournamentId");
     const pitchId = optionalText(formData, "defaultPitchId");
     const teamId = optionalText(formData, "teamId");
@@ -65,6 +70,8 @@ export async function createUmpire(_state: ActionState, formData: FormData) {
 
 export async function deleteUmpire(_state: ActionState, formData: FormData) {
   try {
+    await requireMinimumRole("tournament_admin");
+
     const umpireId = requireText(formData, "umpireId");
     const umpire = await prisma.umpire.findUniqueOrThrow({
       where: { id: umpireId },
@@ -89,6 +96,8 @@ export async function deleteUmpire(_state: ActionState, formData: FormData) {
 
 export async function assignDefaultPitchUmpires(_state: ActionState, formData: FormData) {
   try {
+    await requireMinimumRole("tournament_admin");
+
     const tournamentId = requireText(formData, "tournamentId");
     const tournament = await prisma.tournament.findUniqueOrThrow({
       where: { id: tournamentId },
@@ -138,6 +147,8 @@ export async function assignDefaultPitchUmpires(_state: ActionState, formData: F
 
 export async function createTournamentTemplate(_state: ActionState, formData: FormData) {
   try {
+    await requireMinimumRole("tournament_admin");
+
     const tournamentId = optionalText(formData, "tournamentId");
     const template = await prisma.tournamentTemplate.create({
       data: {
@@ -174,6 +185,8 @@ export async function createTournamentTemplate(_state: ActionState, formData: Fo
 
 export async function applyTournamentTemplate(_state: ActionState, formData: FormData) {
   try {
+    await requireMinimumRole("tournament_admin");
+
     const tournamentId = requireText(formData, "tournamentId");
     const templateId = requireText(formData, "templateId");
     const template = await prisma.tournamentTemplate.findUniqueOrThrow({
