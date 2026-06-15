@@ -88,6 +88,9 @@ async function getAuditRows(tournamentId: string) {
     entityType: log.entityType,
     entityId: log.entityId ?? "",
     action: log.action,
+    actorName: log.actorName ?? "",
+    actorEmail: log.actorEmail ?? "",
+    actorRole: log.actorRole ?? "",
     summary: log.summary,
   }));
 }

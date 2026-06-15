@@ -264,6 +264,9 @@ model AuditLog {
   entityId     String?  @map("entity_id") @db.Uuid
   action       String
   summary      String
+  actorName    String?  @map("actor_name")
+  actorEmail   String?  @map("actor_email")
+  actorRole    String?  @map("actor_role")
   createdAt    DateTime @default(now()) @map("created_at")
 
   tournament Tournament? @relation(fields: [tournamentId], references: [id], onDelete: Cascade)

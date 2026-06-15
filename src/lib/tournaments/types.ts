@@ -163,6 +163,9 @@ export type AuditLog = {
   entityId?: string;
   action: string;
   summary: string;
+  actorName?: string;
+  actorEmail?: string;
+  actorRole?: string;
   createdAt: string;
 };
 

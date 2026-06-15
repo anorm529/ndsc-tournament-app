@@ -5,7 +5,7 @@ import { refresh, revalidatePath } from "next/cache";
 import { prisma } from "@/lib/db";
 import { ActionState, errorState, successState } from "@/lib/action-state";
 import { requireMinimumRole } from "@/lib/current-admin";
-import { writeAuditLog } from "@/lib/audit";
+import { getAuditActorData, writeAuditLog } from "@/lib/audit";
 import { generatePlacementPlayoffs, generateRoundRobinSchedule } from "@/lib/tournaments/scheduler";
 import { calculateStandings } from "@/lib/tournaments/standings";
 import { Fixture, Team, Tournament } from "@/lib/tournaments/types";
@@ -100,6 +100,8 @@ export async function generateSchedule(_state: ActionState, formData: FormData) 
       firstPitch: firstPitchDate.toISOString(),
     });
 
+    const actorData = await getAuditActorData();
+
     await prisma.$transaction(async (tx) => {
       await tx.tournament.update({
         where: { id: tournament.id },
@@ -151,6 +153,7 @@ export async function generateSchedule(_state: ActionState, formData: FormData) 
           tournamentId: tournament.id,
           entityType: "fixture",
           action: "generate_schedule",
+          ...actorData,
           summary: `${generatedFixtures.length} group fixture${generatedFixtures.length === 1 ? "" : "s"} generated.`,
         },
       });
@@ -600,6 +603,8 @@ export async function deleteSchedule(_state: ActionState, formData: FormData) {
       select: { id: true, name: true, slug: true },
     });
 
+    const actorData = await getAuditActorData();
+
     await prisma.$transaction([
       prisma.tournament.update({
         where: { id: tournament.id },
@@ -622,6 +627,7 @@ export async function deleteSchedule(_state: ActionState, formData: FormData) {
           tournamentId: tournament.id,
           entityType: "schedule",
           action: "delete",
+          ...actorData,
           summary: "Schedule, matches, planned playoffs, breaks, scores, and MVP votes were deleted.",
         },
       }),
@@ -675,6 +681,8 @@ export async function updateFixtureSchedule(_state: ActionState, formData: FormD
 
     const oldSummary = `${fixture.homeTeamId}/${fixture.awayTeamId}`;
 
+    const actorData = await getAuditActorData();
+
     await prisma.$transaction([
       prisma.tournament.update({
         where: { id: fixture.tournamentId },
@@ -702,6 +710,7 @@ export async function updateFixtureSchedule(_state: ActionState, formData: FormD
           entityType: "fixture",
           entityId: fixture.id,
           action: teamsChanged ? "change_teams" : "move",
+          ...actorData,
           summary: teamsChanged
             ? `Fixture teams changed from ${oldSummary}. Score and MVP votes were cleared if present.`
             : "Fixture time or pitch was changed.",
@@ -738,6 +747,8 @@ export async function updatePlannedPlayoffSlot(_state: ActionState, formData: Fo
 
     const pitch = await findTournamentPitch(pitchName, match.tournamentId);
 
+    const actorData = await getAuditActorData();
+
     await prisma.$transaction([
       prisma.tournament.update({
         where: { id: match.tournamentId },
@@ -756,6 +767,7 @@ export async function updatePlannedPlayoffSlot(_state: ActionState, formData: Fo
           entityType: "bracket_match",
           entityId: match.id,
           action: "move",
+          ...actorData,
           summary: "Planned playoff slot time or pitch was changed.",
         },
       }),

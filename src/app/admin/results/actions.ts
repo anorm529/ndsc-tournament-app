@@ -5,7 +5,7 @@ import { refresh, revalidatePath } from "next/cache";
 import { prisma } from "@/lib/db";
 import { ActionState, errorState, successState } from "@/lib/action-state";
 import { requireMinimumRole } from "@/lib/current-admin";
-import { writeAuditLog } from "@/lib/audit";
+import { getAuditActorData, writeAuditLog } from "@/lib/audit";
 import { calculateStandings } from "@/lib/tournaments/standings";
 import { Fixture, MvpCategory, Team, Tournament } from "@/lib/tournaments/types";
 
@@ -146,12 +146,16 @@ export async function updateFixtureScores(_state: ActionState, formData: FormDat
       timeout: 15_000,
     });
 
-    const plannedFixturesCreated = await materializePlannedPlayoffs(tournament.id);
+    const [plannedFixturesCreated, actorData] = await Promise.all([
+      materializePlannedPlayoffs(tournament.id),
+      getAuditActorData(),
+    ]);
     await prisma.auditLog.create({
       data: {
         tournamentId: tournament.id,
         entityType: "fixture",
         action: "score_update",
+        ...actorData,
         summary: `${activeFixtureIds.length} fixture score${activeFixtureIds.length === 1 ? "" : "s"} or MVP vote set${activeFixtureIds.length === 1 ? "" : "s"} were saved.`,
       },
     });

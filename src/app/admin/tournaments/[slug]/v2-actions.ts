@@ -3,6 +3,7 @@
 import { refresh, revalidatePath } from "next/cache";
 
 import { ActionState, errorState, successState } from "@/lib/action-state";
+import { getAuditActorData } from "@/lib/audit";
 import { requireMinimumRole } from "@/lib/current-admin";
 import { prisma } from "@/lib/db";
 
@@ -265,9 +266,12 @@ async function writeAudit({
   summary: string;
   tournamentId?: string;
 }) {
+  const actorData = await getAuditActorData();
+
   await prisma.auditLog.create({
     data: {
       action,
+      ...actorData,
       entityId,
       entityType,
       summary,
