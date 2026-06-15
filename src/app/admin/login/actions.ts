@@ -6,10 +6,12 @@ import { redirect } from "next/navigation";
 import { ActionState, errorState } from "@/lib/action-state";
 import { verifyAdminPassword } from "@/lib/admin-users";
 import { ADMIN_SESSION_COOKIE, getAdminPassword, getAdminSessionToken } from "@/lib/admin-session";
+import { ADMIN_USER_COOKIE, createAdminUserCookieValue } from "@/lib/current-admin";
 import { prisma } from "@/lib/db";
 
 export async function login(_state: ActionState, formData: FormData) {
   let redirectTo = "/admin";
+  let loggedInUserId: string | null = null;
 
   try {
     const password = readString(formData, "password");
@@ -35,6 +37,8 @@ export async function login(_state: ActionState, formData: FormData) {
       if (!adminUser || !verifyAdminPassword(password, adminUser.passwordHash)) {
         throw new Error("Those admin details are not correct.");
       }
+
+      loggedInUserId = adminUser.id;
     } else {
       const expectedPassword = getAdminPassword();
 
@@ -55,6 +59,17 @@ export async function login(_state: ActionState, formData: FormData) {
       sameSite: "lax",
       secure: process.env.NODE_ENV === "production",
     });
+    if (loggedInUserId) {
+      cookieStore.set(ADMIN_USER_COOKIE, createAdminUserCookieValue(loggedInUserId), {
+        httpOnly: true,
+        maxAge: 60 * 60 * 12,
+        path: "/",
+        sameSite: "lax",
+        secure: process.env.NODE_ENV === "production",
+      });
+    } else {
+      cookieStore.delete(ADMIN_USER_COOKIE);
+    }
 
     redirectTo = next.startsWith("/admin") ? next : "/admin";
   } catch (error) {
@@ -67,6 +82,7 @@ export async function login(_state: ActionState, formData: FormData) {
 export async function logout() {
   const cookieStore = await cookies();
   cookieStore.delete(ADMIN_SESSION_COOKIE);
+  cookieStore.delete(ADMIN_USER_COOKIE);
   redirect("/");
 }
 

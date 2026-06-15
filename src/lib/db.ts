@@ -15,9 +15,11 @@ if (!connectionString) {
 
 const pool = globalForPrisma.prismaPool ?? new Pool({ connectionString });
 const adapter = new PrismaPg(pool);
+const cachedPrisma = globalForPrisma.prisma;
+const cachedClientIsCurrent = cachedPrisma && "adminUser" in cachedPrisma;
 
 export const prisma =
-  globalForPrisma.prisma ??
+  (cachedClientIsCurrent ? cachedPrisma : undefined) ??
   new PrismaClient({
     adapter,
     log: process.env.NODE_ENV === "development" ? ["error", "warn"] : ["error"],

@@ -1,15 +1,17 @@
 import Link from "next/link";
-import { Plus, Save, Trash2 } from "lucide-react";
+import { ReactNode } from "react";
+import { CalendarDays, Eye, MapPin, Pencil, Plus, Settings, Shield, Trash2, Trophy, Users } from "lucide-react";
 
 import { ActionForm, ConfirmSubmitButton } from "@/components/admin/action-form";
 import { ButtonShell, PageHeader, Panel } from "@/components/admin/admin-ui";
-import { getTournaments } from "@/lib/tournaments/data";
+import { getTournamentCards } from "@/lib/tournaments/data";
+import { TournamentCard } from "@/lib/tournaments/types";
 import { createTournament, deleteTournament, updateTournament } from "./actions";
 
 export const dynamic = "force-dynamic";
 
 export default async function AdminTournamentsPage() {
-  const tournaments = await getTournaments();
+  const tournaments = await getTournamentCards();
 
   return (
     <div className="space-y-5">
@@ -41,66 +43,165 @@ export default async function AdminTournamentsPage() {
         </ActionForm>
       </Panel>
 
-      <div className="grid gap-5">
-        {tournaments.map((event) => (
-          <Panel
-            key={event.id}
-            title={event.name}
-            action={
-              <div className="flex flex-wrap gap-3">
-                <Link
-                  className="text-sm font-semibold text-slate-600 transition hover:text-slate-950"
-                  href={`/admin/tournaments/${event.slug}`}
-                >
-                  Manage
-                </Link>
-                <Link
-                  className="text-sm font-semibold text-slate-600 transition hover:text-slate-950"
-                  href={`/tournaments/${event.slug}`}
-                >
-                  Public page
-                </Link>
-              </div>
-            }
-          >
-            <ActionForm action={updateTournament} className="space-y-4">
-              <input name="tournamentId" type="hidden" value={event.id} />
-              <TournamentFields
-                defaults={{
-                  announcements: event.announcements.join("\n"),
-                  checkInAt: toDatetimeLocalInput(event.checkInTime),
-                  city: event.city,
-                  drawPoints: `${event.points.draw}`,
-                  format: event.format,
-                  gameMinutes: `${event.gameMinutes}`,
-                  lossPoints: `${event.points.loss}`,
-                  mvpMode: event.mvpMode,
-                  name: event.name,
-                  pitches: event.pitches.join("\n"),
-                  seasonYear: `${event.seasonYear}`,
-                  slug: event.slug,
-                  slotGapMinutes: `${event.slotGapMinutes}`,
-                  startsOn: toDateInput(event.date),
-                  status: event.status,
-                  tournamentType: event.tournamentType,
-                  venue: event.venue,
-                  winPoints: `${event.points.win}`,
-                }}
-              />
-              <ButtonShell><Save size={16} /> Save tournament</ButtonShell>
-            </ActionForm>
-            <ActionForm action={deleteTournament} className="mt-4 border-t border-slate-100 pt-4">
-              <input name="tournamentId" type="hidden" value={event.id} />
-              <ConfirmSubmitButton
-                confirmMessage={`Delete ${event.name}? This also deletes its teams, fixtures, scores, MVP votes, pitches, and bracket data.`}
-              >
-                <Trash2 size={16} /> Delete tournament
-              </ConfirmSubmitButton>
-            </ActionForm>
-          </Panel>
-        ))}
+      <div>
+        <div className="flex items-end justify-between gap-3">
+          <div>
+            <h2 className="text-lg font-bold text-slate-950">Tournament Index</h2>
+            <p className="mt-1 text-sm text-slate-600">Pick the event you want, then manage its teams, schedule, scores, and settings.</p>
+          </div>
+          <p className="text-sm font-semibold text-slate-500">
+            {tournaments.length} tournament{tournaments.length === 1 ? "" : "s"}
+          </p>
+        </div>
+
+        {tournaments.length === 0 ? (
+          <div className="mt-4 rounded-lg border border-dashed border-slate-300 bg-white p-6 text-sm font-semibold text-slate-500">
+            No tournaments yet. Create the first one above.
+          </div>
+        ) : (
+          <div className="mt-4 grid gap-4 xl:grid-cols-2">
+            {tournaments.map((event) => (
+              <TournamentAdminCard key={event.id} event={event} />
+            ))}
+          </div>
+        )}
       </div>
     </div>
+  );
+}
+
+function TournamentAdminCard({ event }: { event: TournamentCard }) {
+  return (
+    <article className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-2">
+            <StatusBadge status={event.status} />
+            <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold uppercase text-slate-600">
+              {event.tournamentType === "internal" ? "Internal" : "Public"}
+            </span>
+            {!event.schedulePublished && (
+              <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-bold uppercase text-amber-800">
+                Draft schedule
+              </span>
+            )}
+          </div>
+          <h3 className="mt-3 truncate text-2xl font-bold text-slate-950">{event.name}</h3>
+          <div className="mt-3 grid gap-2 text-sm font-medium text-slate-600">
+            <span className="inline-flex items-center gap-2">
+              <CalendarDays size={16} /> {formatDate(event.date)}
+            </span>
+            <span className="inline-flex items-center gap-2">
+              <MapPin size={16} /> {event.venue}
+            </span>
+            <span className="inline-flex items-center gap-2">
+              <Shield size={16} /> {formatLabel(event.format)} · {event.gameMinutes} min games
+              {event.slotGapMinutes > 0 ? ` + ${event.slotGapMinutes} min gap` : ""}
+            </span>
+          </div>
+        </div>
+
+        <div className="flex shrink-0 flex-wrap gap-2">
+          <Link
+            className="inline-flex h-10 items-center justify-center gap-2 rounded-md bg-slate-950 px-4 text-sm font-semibold text-white transition hover:bg-slate-800"
+            href={`/admin/tournaments/${event.slug}`}
+          >
+            <Settings size={16} /> Manage
+          </Link>
+          <Link
+            className="inline-flex h-10 items-center justify-center gap-2 rounded-md border border-slate-300 px-4 text-sm font-semibold text-slate-700 transition hover:border-slate-400 hover:text-slate-950"
+            href={`/tournaments/${event.slug}`}
+          >
+            <Eye size={16} /> Public
+          </Link>
+        </div>
+      </div>
+
+      <div className="mt-5 grid gap-3 sm:grid-cols-3">
+        <MiniStat icon={<Users size={16} />} label="Teams" value={`${event.teamsCount}`} />
+        <MiniStat icon={<Trophy size={16} />} label="Games" value={`${event.playedFixturesCount}/${event.fixturesCount}`} />
+        <MiniStat icon={<MapPin size={16} />} label="Pitches" value={`${event.pitches.length}`} />
+      </div>
+
+      <details className="mt-5 border-t border-slate-100 pt-4">
+        <summary className="inline-flex cursor-pointer list-none items-center gap-2 text-sm font-bold text-slate-700 transition hover:text-slate-950">
+          <Pencil size={16} /> Edit settings
+        </summary>
+        <div className="mt-4 rounded-md border border-slate-200 bg-slate-50 p-4">
+          <ActionForm action={updateTournament} className="space-y-4">
+            <input name="tournamentId" type="hidden" value={event.id} />
+            <TournamentFields
+              defaults={{
+                announcements: event.announcements.join("\n"),
+                checkInAt: toDatetimeLocalInput(event.checkInTime),
+                city: event.city,
+                drawPoints: `${event.points.draw}`,
+                format: event.format,
+                gameMinutes: `${event.gameMinutes}`,
+                lossPoints: `${event.points.loss}`,
+                mvpMode: event.mvpMode,
+                name: event.name,
+                pitches: event.pitches.join("\n"),
+                seasonYear: `${event.seasonYear}`,
+                slug: event.slug,
+                slotGapMinutes: `${event.slotGapMinutes}`,
+                startsOn: toDateInput(event.date),
+                status: event.status,
+                tournamentType: event.tournamentType,
+                venue: event.venue,
+                winPoints: `${event.points.win}`,
+              }}
+            />
+            <ButtonShell><Pencil size={16} /> Save changes</ButtonShell>
+          </ActionForm>
+          <ActionForm action={deleteTournament} className="mt-4 border-t border-slate-200 pt-4">
+            <input name="tournamentId" type="hidden" value={event.id} />
+            <ConfirmSubmitButton
+              confirmMessage={`Delete ${event.name}? This also deletes its teams, fixtures, scores, MVP votes, pitches, and bracket data.`}
+            >
+              <Trash2 size={16} /> Delete tournament
+            </ConfirmSubmitButton>
+          </ActionForm>
+        </div>
+      </details>
+    </article>
+  );
+}
+
+function MiniStat({
+  icon,
+  label,
+  value,
+}: {
+  icon: ReactNode;
+  label: string;
+  value: string;
+}) {
+  return (
+    <div className="rounded-md bg-slate-50 p-3">
+      <div className="flex items-center gap-2 text-xs font-bold uppercase text-slate-500">
+        {icon}
+        {label}
+      </div>
+      <p className="mt-2 text-xl font-black text-slate-950">{value}</p>
+    </div>
+  );
+}
+
+function StatusBadge({ status }: { status: TournamentCard["status"] }) {
+  const className =
+    status === "live"
+      ? "bg-emerald-100 text-emerald-800"
+      : status === "complete"
+        ? "bg-slate-200 text-slate-700"
+        : status === "published"
+          ? "bg-sky-100 text-sky-800"
+          : "bg-amber-100 text-amber-800";
+
+  return (
+    <span className={`rounded-full px-3 py-1 text-xs font-bold uppercase ${className}`}>
+      {status}
+    </span>
   );
 }
 
@@ -297,4 +398,17 @@ function toDateInput(value: string) {
 
 function toDatetimeLocalInput(value: string) {
   return new Date(value).toISOString().slice(0, 16);
+}
+
+function formatDate(value: string) {
+  return new Intl.DateTimeFormat("en-GB", {
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  }).format(new Date(value));
+}
+
+function formatLabel(value: string) {
+  return value.replaceAll("-", " ");
 }

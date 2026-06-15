@@ -2,6 +2,7 @@ import { KeyRound, Plus, Save, Trash2, Users } from "lucide-react";
 
 import { ActionForm, ConfirmSubmitButton } from "@/components/admin/action-form";
 import { ButtonShell, PageHeader, Panel, Stat } from "@/components/admin/admin-ui";
+import { canManageAdminUsers } from "@/lib/current-admin";
 import { prisma } from "@/lib/db";
 
 import { createAdminUser, deleteAdminUser, updateAdminUser } from "./actions";
@@ -16,9 +17,25 @@ const roleOptions = [
 ];
 
 export default async function AdminUsersPage() {
-  const users = await prisma.adminUser.findMany({
-    orderBy: [{ role: "asc" }, { name: "asc" }],
-  });
+  const [users, canManageUsers] = await Promise.all([
+    prisma.adminUser.findMany({
+      orderBy: [{ role: "asc" }, { name: "asc" }],
+    }),
+    canManageAdminUsers(),
+  ]);
+
+  if (!canManageUsers) {
+    return (
+      <div className="space-y-5">
+        <PageHeader title="Admin Users" description="Only owners can manage other admin accounts." />
+        <Panel title="Owner access required">
+          <p className="text-sm font-medium text-slate-600">
+            You can change your own password from the Account page, but only an owner can create, edit, or delete other admin users.
+          </p>
+        </Panel>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-5">
@@ -33,7 +50,7 @@ export default async function AdminUsersPage() {
         <ActionForm action={createAdminUser} className="grid gap-3 lg:grid-cols-[1fr_1fr_1fr_1fr_auto] lg:items-end">
           <TextField label="Name" name="name" required />
           <TextField label="Email" name="email" required type="email" />
-          <SelectField label="Role" name="role" value="tournament_admin" />
+          <SelectField label="Role" name="role" value={users.length === 0 ? "owner" : "tournament_admin"} />
           <TextField label="Password" name="password" required type="password" />
           <ButtonShell><Plus size={16} /> Add</ButtonShell>
         </ActionForm>
