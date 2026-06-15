@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Download, FileDown } from "lucide-react";
+import { Download, FileDown, Printer } from "lucide-react";
 
 import { PageHeader, Panel, Stat } from "@/components/admin/admin-ui";
 import { getTournamentBundle } from "@/lib/tournaments/data";
@@ -42,6 +42,19 @@ export default async function ExportsPage({ params }: { params: Promise<{ slug: 
             </Link>
           ))}
         </div>
+      </Panel>
+      <Panel title="Print pack">
+        <Link
+          className="flex items-center justify-between gap-4 rounded-md border border-slate-200 bg-slate-50 p-4 transition hover:border-teal-200 hover:bg-white"
+          href={`/admin/tournaments/${tournament.slug}/print`}
+          target="_blank"
+        >
+          <span>
+            <span className="block text-sm font-bold text-slate-950">Tournament pack</span>
+            <span className="mt-1 block text-xs font-medium text-slate-600">Printable teams, schedule, score sheet, and standings.</span>
+          </span>
+          <Printer size={18} className="shrink-0 text-slate-500" />
+        </Link>
       </Panel>
     </div>
   );

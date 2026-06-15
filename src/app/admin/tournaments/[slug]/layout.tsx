@@ -9,6 +9,7 @@ import {
   MonitorUp,
   Settings,
   ShieldCheck,
+  Smartphone,
   Table2,
   UserCheck,
   Users,
@@ -31,6 +32,7 @@ const navGroups = [
     label: "Operations",
     items: [
       { segment: "check-in", label: "Check-in", icon: ShieldCheck },
+      { segment: "scorekeeper", label: "Scorekeeper", icon: Smartphone },
       { segment: "umpires", label: "Umpires", icon: UserCheck },
       { segment: "live", label: "Live display", icon: MonitorUp },
     ],

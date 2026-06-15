@@ -34,9 +34,11 @@ export async function createUmpire(_state: ActionState, formData: FormData) {
   try {
     const tournamentId = requireText(formData, "tournamentId");
     const pitchId = optionalText(formData, "defaultPitchId");
+    const teamId = optionalText(formData, "teamId");
     const umpire = await prisma.umpire.create({
       data: {
         tournamentId,
+        teamId: teamId || null,
         name: requireText(formData, "name"),
         email: optionalText(formData, "email"),
         phone: optionalText(formData, "phone"),

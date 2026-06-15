@@ -96,13 +96,22 @@ export default async function TournamentPage({ params }: { params: Promise<{ slu
 
       <section className="mx-auto grid max-w-6xl gap-5 px-5 py-6 sm:px-6 lg:grid-cols-[minmax(0,1.35fr)_380px]">
         <div className="space-y-5">
+          <nav className="flex gap-2 overflow-x-auto rounded-lg border border-slate-200 bg-white p-2 shadow-sm">
+            <TabLink href="#overview" label="Overview" />
+            <TabLink href="#schedule" label="Schedule" />
+            <TabLink href="#standings" label={hasFinalPlacements ? "Placements" : "Standings"} />
+            <TabLink href="#playoffs" label="Playoffs" />
+            <TabLink href="#mvp" label="MVP" />
+            {event.schedulePublished ? <TabLink href={`/tournaments/${event.slug}/live`} label="Live board" /> : null}
+          </nav>
+
           <Announcements announcements={event.announcements} />
 
           {placementFixtures.length > 0 ? (
             <PlayoffPanel bracket={[]} placementFixtures={placementFixtures} teams={teams} />
           ) : null}
 
-          <section className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+          <section id="schedule" className="scroll-mt-5 rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
             <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
               <div>
                 <h2 className="text-xl font-bold">Full Day Schedule</h2>
@@ -133,7 +142,7 @@ export default async function TournamentPage({ params }: { params: Promise<{ slu
           ) : null}
         </div>
 
-        <aside className="space-y-5 lg:sticky lg:top-5 lg:self-start">
+        <aside id="overview" className="space-y-5 lg:sticky lg:top-5 lg:self-start">
           <section className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
             <h2 className="text-lg font-bold">At a Glance</h2>
             <div className="mt-4 grid gap-3">
@@ -154,7 +163,7 @@ export default async function TournamentPage({ params }: { params: Promise<{ slu
             </div>
           </section>
 
-          <section className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+          <section id="standings" className="scroll-mt-5 rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
             <h2 className="text-lg font-bold">{hasFinalPlacements ? "Final Placements" : "Live Standings"}</h2>
             <div className="mt-4">
               {hasFinalPlacements ? (
@@ -180,7 +189,7 @@ export default async function TournamentPage({ params }: { params: Promise<{ slu
             </div>
           </section>
 
-          <section className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+          <section id="mvp" className="scroll-mt-5 rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
             <h2 className="text-lg font-bold">MVP Leaders</h2>
             <div className="mt-4">
               <MvpLeaderboard leaders={mvpLeaders} limit={5} />
@@ -189,6 +198,17 @@ export default async function TournamentPage({ params }: { params: Promise<{ slu
         </aside>
       </section>
     </main>
+  );
+}
+
+function TabLink({ href, label }: { href: string; label: string }) {
+  return (
+    <Link
+      href={href}
+      className="inline-flex h-9 shrink-0 items-center rounded-md px-3 text-sm font-bold text-slate-700 transition hover:bg-slate-100 hover:text-slate-950"
+    >
+      {label}
+    </Link>
   );
 }
 
@@ -346,7 +366,7 @@ function Info({ icon: Icon, label }: { icon: LucideIcon; label: string }) {
 
 function Announcements({ announcements }: { announcements: string[] }) {
   return (
-    <section className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+    <section id="playoffs" className="scroll-mt-5 rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
       <div className="flex items-center gap-2">
         <Megaphone size={18} className="text-teal-700" />
         <h2 className="text-lg font-bold">Announcements</h2>

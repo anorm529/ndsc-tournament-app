@@ -1,11 +1,11 @@
-import { CalendarPlus, RotateCcw, Save, Send, Trash2, Undo2 } from "lucide-react";
+import { AlertTriangle, CalendarPlus, RotateCcw, Save, Send, Trash2, Undo2 } from "lucide-react";
 
 import { ActionForm, ConfirmSubmitButton, SubmitButton } from "@/components/admin/action-form";
 import { ButtonShell, PageHeader, Panel } from "@/components/admin/admin-ui";
 import { getTournamentBundle } from "@/lib/tournaments/data";
 import { formatTime } from "@/lib/tournaments/format";
 import { generateRoundRobinSchedule } from "@/lib/tournaments/scheduler";
-import { BracketMatch, Fixture, ScheduleBlock, Team } from "@/lib/tournaments/types";
+import { BracketMatch, Fixture, MvpVote, ScheduleBlock, Team } from "@/lib/tournaments/types";
 import { groupFixturesBySlot, isFixtureComplete, teamName } from "@/lib/tournaments/view-model";
 import {
   addScheduleBlock,
@@ -27,7 +27,7 @@ export default async function AdminTournamentSchedulePage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const { bracket, fixtures, scheduleBlocks, standings, teams, tournament } = await getTournamentBundle(slug);
+  const { bracket, fixtures, mvpVotes, scheduleBlocks, standings, teams, tournament } = await getTournamentBundle(slug);
   const placementFixtures = fixtures.filter((fixture) =>
     fixture.stage === "final" || fixture.stage === "third-place" || fixture.stage === "fifth-place"
   );
@@ -201,6 +201,7 @@ export default async function AdminTournamentSchedulePage({
         <DayPlan
           bracket={placementFixtures.length > 0 ? [] : bracket}
           fixtures={fixtures}
+          mvpVotes={mvpVotes}
           pitches={tournament.pitches}
           scheduleBlocks={scheduleBlocks}
           teams={teams}
@@ -214,7 +215,7 @@ export default async function AdminTournamentSchedulePage({
                 <p className="mb-2 text-sm font-bold text-slate-600">{formatTime(startsAt)}</p>
                 <div className="grid gap-3">
                   {slotFixtures.map((fixture) => (
-                    <EditableFixtureCard key={fixture.id} fixture={fixture} pitches={tournament.pitches} teams={teams} />
+                    <EditableFixtureCard key={fixture.id} fixture={fixture} mvpVotes={mvpVotes} pitches={tournament.pitches} teams={teams} />
                   ))}
                 </div>
               </div>
@@ -231,12 +232,14 @@ export default async function AdminTournamentSchedulePage({
 function DayPlan({
   bracket,
   fixtures,
+  mvpVotes,
   pitches,
   scheduleBlocks,
   teams,
 }: {
   bracket: BracketMatch[];
   fixtures: Fixture[];
+  mvpVotes: MvpVote[];
   pitches: string[];
   scheduleBlocks: ScheduleBlock[];
   teams: Team[];
@@ -270,7 +273,7 @@ function DayPlan({
     <div className="space-y-3">
       {items.map((item) => {
         if (item.type === "fixture") {
-          return <EditableFixtureCard key={item.id} fixture={item.fixture} pitches={pitches} teams={teams} />;
+          return <EditableFixtureCard key={item.id} fixture={item.fixture} mvpVotes={mvpVotes} pitches={pitches} teams={teams} />;
         }
 
         if (item.type === "bracket") {
@@ -285,14 +288,23 @@ function DayPlan({
 
 function EditableFixtureCard({
   fixture,
+  mvpVotes,
   pitches,
   teams,
 }: {
   fixture: Fixture;
+  mvpVotes: MvpVote[];
   pitches: string[];
   teams: Team[];
 }) {
   const complete = isFixtureComplete(fixture);
+  const fixtureMvpVotes = mvpVotes.filter((vote) => vote.fixtureId === fixture.id);
+  const warnings = [
+    complete ? "This fixture has a saved score. Team changes are blocked until the score is cleared." : "",
+    fixtureMvpVotes.length > 0 ? `${fixtureMvpVotes.length} MVP vote${fixtureMvpVotes.length === 1 ? "" : "s"} attached to this fixture.` : "",
+    fixture.umpires && fixture.umpires.length > 0 ? `${fixture.umpires.length} umpire assignment${fixture.umpires.length === 1 ? "" : "s"} attached to this fixture.` : "",
+    fixture.stage !== "group" ? "Placement fixtures can affect final standings and public winner display." : "",
+  ].filter(Boolean);
 
   return (
     <article className="overflow-hidden rounded-md border border-slate-200 bg-white p-4 shadow-sm">
@@ -306,6 +318,15 @@ function EditableFixtureCard({
           <p className="break-words text-base font-black leading-snug text-slate-950">
             {teamName(teams, fixture.homeTeamId)} vs {teamName(teams, fixture.awayTeamId)}
           </p>
+          {warnings.length > 0 ? (
+            <div className="grid gap-1">
+              {warnings.map((warning) => (
+                <p key={warning} className="flex items-center gap-2 rounded-md border border-amber-200 bg-amber-50 px-2 py-1 text-xs font-semibold text-amber-900">
+                  <AlertTriangle size={13} /> {warning}
+                </p>
+              ))}
+            </div>
+          ) : null}
         </div>
         <ActionForm action={updateFixtureSchedule} className="grid min-w-0 gap-2 md:grid-cols-2 xl:grid-cols-[minmax(150px,1fr)_minmax(150px,1fr)_minmax(220px,1.2fr)_minmax(140px,0.8fr)_auto] xl:items-end">
           <input name="fixtureId" type="hidden" value={fixture.id} />

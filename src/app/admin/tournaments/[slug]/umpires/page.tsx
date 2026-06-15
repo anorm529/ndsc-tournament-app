@@ -1,4 +1,4 @@
-import { ClipboardCheck, MapPinned, Plus, Trash2, UserCheck, Wand2 } from "lucide-react";
+import { AlertTriangle, ClipboardCheck, MapPinned, Plus, Trash2, UserCheck, Wand2 } from "lucide-react";
 
 import { ActionForm, ConfirmSubmitButton, SubmitButton } from "@/components/admin/action-form";
 import { ButtonShell, PageHeader, Panel, Stat } from "@/components/admin/admin-ui";
@@ -11,12 +11,12 @@ export const dynamic = "force-dynamic";
 
 export default async function UmpiresPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  const { tournament } = await getTournamentBundle(slug);
+  const { teams, tournament } = await getTournamentBundle(slug);
   const [pitches, umpires, fixtureRows] = await Promise.all([
     prisma.pitch.findMany({ where: { tournamentId: tournament.id }, orderBy: { sortOrder: "asc" } }),
     prisma.umpire.findMany({
       where: { tournamentId: tournament.id },
-      include: { defaultPitch: true },
+      include: { defaultPitch: true, team: true },
       orderBy: { name: "asc" },
     }),
     prisma.fixture.findMany({
@@ -25,7 +25,7 @@ export default async function UmpiresPage({ params }: { params: Promise<{ slug: 
         awayTeam: true,
         homeTeam: true,
         pitch: true,
-        umpireAssignments: { include: { umpire: true }, orderBy: { createdAt: "asc" } },
+        umpireAssignments: { include: { umpire: { include: { team: true } } }, orderBy: { createdAt: "asc" } },
       },
       orderBy: [{ startsAt: "asc" }, { pitch: { sortOrder: "asc" } }],
     }),
@@ -33,6 +33,11 @@ export default async function UmpiresPage({ params }: { params: Promise<{ slug: 
   const fixturesWithUmpires = fixtureRows.filter((fixture) => fixture.umpireAssignments.length > 0).length;
   const unassignedFixtures = fixtureRows.length - fixturesWithUmpires;
   const coveragePercent = fixtureRows.length > 0 ? Math.round((fixturesWithUmpires / fixtureRows.length) * 100) : 0;
+  const conflictRows = fixtureRows.flatMap((fixture) =>
+    fixture.umpireAssignments
+      .filter((assignment) => assignment.umpire.teamId === fixture.homeTeamId || assignment.umpire.teamId === fixture.awayTeamId)
+      .map((assignment) => `${assignment.umpire.name} is assigned to ${fixture.homeTeam.name} vs ${fixture.awayTeam.name}`),
+  );
 
   return (
     <div className="space-y-5">
@@ -43,12 +48,21 @@ export default async function UmpiresPage({ params }: { params: Promise<{ slug: 
         <Stat icon={MapPinned} label="Diamonds" value={`${pitches.length}`} detail={`${unassignedFixtures} without umpires`} />
       </div>
       <Panel title="Add umpire">
-        <ActionForm action={createUmpire} className="grid gap-3 lg:grid-cols-[1fr_1fr_1fr_1fr_1fr_auto] lg:items-end">
+        <ActionForm action={createUmpire} className="grid gap-3 lg:grid-cols-[1fr_1fr_1fr_1fr_1fr_1fr_auto] lg:items-end">
           <input name="tournamentId" type="hidden" value={tournament.id} />
           <TextField label="Name" name="name" required />
           <TextField label="Email" name="email" />
           <TextField label="Phone" name="phone" />
           <TextField label="Availability" name="availabilityNote" placeholder="Morning only" />
+          <label className="block">
+            <span className="text-xs font-semibold uppercase text-slate-500">Home team</span>
+            <select className="mt-1 h-11 w-full rounded-md border border-slate-300 px-3 text-sm font-medium" name="teamId">
+              <option value="">Neutral / none</option>
+              {teams.map((team) => (
+                <option key={team.id} value={team.id}>{team.name}</option>
+              ))}
+            </select>
+          </label>
           <label className="block">
             <span className="text-xs font-semibold uppercase text-slate-500">Default diamond</span>
             <select className="mt-1 h-11 w-full rounded-md border border-slate-300 px-3 text-sm font-medium" name="defaultPitchId">
@@ -76,6 +90,7 @@ export default async function UmpiresPage({ params }: { params: Promise<{ slug: 
               <div className="min-w-0">
                 <p className="text-sm font-bold text-slate-950">{umpire.name}</p>
                 <p className="mt-1 text-xs font-medium text-slate-600">{umpire.defaultPitch?.name ?? "No default diamond"}</p>
+                <p className="mt-1 text-xs font-medium text-slate-600">{umpire.team?.name ? `Home team: ${umpire.team.name}` : "No team conflict check"}</p>
                 {umpire.availabilityNote ? (
                   <p className="mt-2 text-xs font-semibold text-slate-500">{umpire.availabilityNote}</p>
                 ) : null}
@@ -97,6 +112,15 @@ export default async function UmpiresPage({ params }: { params: Promise<{ slug: 
       </Panel>
       <Panel title="Fixture coverage">
         <div className="space-y-3">
+          {conflictRows.length > 0 ? (
+            <div className="space-y-2">
+              {conflictRows.map((warning) => (
+                <p key={warning} className="flex items-center gap-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm font-semibold text-amber-900">
+                  <AlertTriangle size={16} /> {warning}
+                </p>
+              ))}
+            </div>
+          ) : null}
           <div className="h-3 overflow-hidden rounded-full bg-slate-100">
             <div className="h-full rounded-full bg-emerald-600 transition-all" style={{ width: `${coveragePercent}%` }} />
           </div>

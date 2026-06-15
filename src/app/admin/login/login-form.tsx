@@ -10,6 +10,16 @@ export function LoginForm({ next }: { next: string }) {
     <ActionForm action={login} className="space-y-4">
       <input name="next" type="hidden" value={next} />
       <label className="block">
+        <span className="text-xs font-semibold uppercase text-slate-500">Admin email</span>
+        <input
+          autoComplete="email"
+          className="mt-1 h-12 w-full rounded-md border border-slate-300 px-3 text-base font-semibold text-slate-950 outline-none transition focus:border-slate-950 focus:ring-2 focus:ring-slate-200"
+          name="email"
+          placeholder="Optional until admin users exist"
+          type="email"
+        />
+      </label>
+      <label className="block">
         <span className="text-xs font-semibold uppercase text-slate-500">Admin password</span>
         <input
           autoComplete="current-password"

@@ -4,6 +4,7 @@ import { refresh, revalidatePath } from "next/cache";
 
 import { prisma } from "@/lib/db";
 import { ActionState, errorState, successState } from "@/lib/action-state";
+import { writeAuditLog } from "@/lib/audit";
 import { generatePlacementPlayoffs, generateRoundRobinSchedule } from "@/lib/tournaments/scheduler";
 import { calculateStandings } from "@/lib/tournaments/standings";
 import { Fixture, Team, Tournament } from "@/lib/tournaments/types";
@@ -141,6 +142,15 @@ export async function generateSchedule(_state: ActionState, formData: FormData) 
           skipDuplicates: true,
         });
       }
+
+      await tx.auditLog.create({
+        data: {
+          tournamentId: tournament.id,
+          entityType: "fixture",
+          action: "generate_schedule",
+          summary: `${generatedFixtures.length} group fixture${generatedFixtures.length === 1 ? "" : "s"} generated.`,
+        },
+      });
     });
 
     revalidateSchedulePages(tournament.slug);
@@ -523,6 +533,12 @@ export async function publishSchedule(_state: ActionState, formData: FormData) {
       where: { id: tournament.id },
       data: { schedulePublished: true },
     });
+    await writeAuditLog({
+      tournamentId: tournament.id,
+      entityType: "schedule",
+      action: "publish",
+      summary: "Schedule was published to the public page.",
+    });
 
     revalidateSchedulePages(tournament.slug);
     refresh();
@@ -543,6 +559,12 @@ export async function unpublishSchedule(_state: ActionState, formData: FormData)
     await prisma.tournament.update({
       where: { id: tournament.id },
       data: { schedulePublished: false },
+    });
+    await writeAuditLog({
+      tournamentId: tournament.id,
+      entityType: "schedule",
+      action: "unpublish",
+      summary: "Schedule was moved back to draft.",
     });
 
     revalidateSchedulePages(tournament.slug);
@@ -577,6 +599,14 @@ export async function deleteSchedule(_state: ActionState, formData: FormData) {
       }),
       prisma.scheduleBlock.deleteMany({
         where: { tournamentId: tournament.id },
+      }),
+      prisma.auditLog.create({
+        data: {
+          tournamentId: tournament.id,
+          entityType: "schedule",
+          action: "delete",
+          summary: "Schedule, matches, planned playoffs, breaks, scores, and MVP votes were deleted.",
+        },
       }),
     ]);
 
@@ -624,6 +654,8 @@ export async function updateFixtureSchedule(_state: ActionState, formData: FormD
       throw new Error("Clear this match score before changing its teams.");
     }
 
+    const oldSummary = `${fixture.homeTeamId}/${fixture.awayTeamId}`;
+
     await prisma.$transaction([
       prisma.tournament.update({
         where: { id: fixture.tournamentId },
@@ -643,6 +675,17 @@ export async function updateFixtureSchedule(_state: ActionState, formData: FormD
           homeTeamId,
           pitchId: pitch.id,
           startsAt,
+        },
+      }),
+      prisma.auditLog.create({
+        data: {
+          tournamentId: fixture.tournamentId,
+          entityType: "fixture",
+          entityId: fixture.id,
+          action: teamsChanged ? "change_teams" : "move",
+          summary: teamsChanged
+            ? `Fixture teams changed from ${oldSummary}. Score and MVP votes were cleared if present.`
+            : "Fixture time or pitch was changed.",
         },
       }),
     ]);
@@ -684,6 +727,15 @@ export async function updatePlannedPlayoffSlot(_state: ActionState, formData: Fo
         data: {
           pitchId: pitch.id,
           startsAt,
+        },
+      }),
+      prisma.auditLog.create({
+        data: {
+          tournamentId: match.tournamentId,
+          entityType: "bracket_match",
+          entityId: match.id,
+          action: "move",
+          summary: "Planned playoff slot time or pitch was changed.",
         },
       }),
     ]);
