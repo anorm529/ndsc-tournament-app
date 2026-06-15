@@ -29,10 +29,7 @@ export default async function AdminLoginPage({
           <LoginForm next={next} />
         </div>
       </section>
-      <p className="mt-4 text-sm text-slate-500">
-        Local development password defaults to <span className="font-semibold text-slate-700">admin</span>.
-        Set a real password in Vercel before deploying.
-      </p>
+
     </div>
   );
 }
