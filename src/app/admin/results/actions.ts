@@ -1,6 +1,6 @@
 "use server";
 
-import { refresh, revalidatePath } from "next/cache";
+import { refresh, revalidatePath, revalidateTag } from "next/cache";
 
 import { prisma } from "@/lib/db";
 import { ActionState, errorState, successState } from "@/lib/action-state";
@@ -146,19 +146,47 @@ export async function updateFixtureScores(_state: ActionState, formData: FormDat
       timeout: 15_000,
     });
 
-    const [plannedFixturesCreated, actorData] = await Promise.all([
+    const [plannedFixturesCreated, actorData, tournamentTeams] = await Promise.all([
       materializePlannedPlayoffs(tournament.id),
       getAuditActorData(),
+      prisma.team.findMany({ where: { tournamentId: tournament.id }, select: { id: true, name: true } }),
     ]);
-    await prisma.auditLog.create({
-      data: {
-        tournamentId: tournament.id,
-        entityType: "fixture",
-        action: "score_update",
-        ...actorData,
-        summary: `${activeFixtureIds.length} fixture score${activeFixtureIds.length === 1 ? "" : "s"} or MVP vote set${activeFixtureIds.length === 1 ? "" : "s"} were saved.`,
-      },
-    });
+    const teamNamesById = new Map(tournamentTeams.map((t) => [t.id, t.name]));
+
+    const scoreAuditEntries: { tournamentId: string; entityType: string; entityId: string; action: string; actorEmail: string | null; actorName: string | null; actorRole: string | null; summary: string }[] = [];
+    for (const fixtureId of activeFixtureIds) {
+      const before = validFixturesById.get(fixtureId);
+      if (!before) continue;
+      const newHomeRuns = readOptionalScore(formData, `homeRuns-${fixtureId}`);
+      const newAwayRuns = readOptionalScore(formData, `awayRuns-${fixtureId}`);
+      if (newHomeRuns === before.homeRuns && newAwayRuns === before.awayRuns) continue;
+      const homeName = teamNamesById.get(before.homeTeamId) ?? "Home";
+      const awayName = teamNamesById.get(before.awayTeamId) ?? "Away";
+      const hadScore = before.homeRuns !== null || before.awayRuns !== null;
+      let summary: string;
+      if (newHomeRuns === null && newAwayRuns === null) {
+        summary = `Score cleared: ${homeName} vs ${awayName} (was ${before.homeRuns ?? "?"}–${before.awayRuns ?? "?"})`;
+      } else if (hadScore) {
+        summary = `Score corrected: ${homeName} ${newHomeRuns ?? "?"}–${newAwayRuns ?? "?"} ${awayName} (was ${before.homeRuns ?? "?"}–${before.awayRuns ?? "?"})`;
+      } else {
+        summary = `Score set: ${homeName} ${newHomeRuns ?? "?"}–${newAwayRuns ?? "?"} ${awayName}`;
+      }
+      scoreAuditEntries.push({ tournamentId: tournament.id, entityType: "fixture", entityId: fixtureId, action: "score_update", ...actorData, summary });
+    }
+
+    if (scoreAuditEntries.length > 0) {
+      await prisma.auditLog.createMany({ data: scoreAuditEntries });
+    } else {
+      await prisma.auditLog.create({
+        data: {
+          tournamentId: tournament.id,
+          entityType: "fixture",
+          action: "mvp_update",
+          ...actorData,
+          summary: `${activeFixtureIds.length} MVP vote set${activeFixtureIds.length === 1 ? "" : "s"} saved.`,
+        },
+      });
+    }
 
     const adminBase = `/admin/tournaments/${tournament.slug}`;
 
@@ -326,6 +354,8 @@ function revalidateResultPages(slug: string) {
   revalidatePath(`${adminBase}/schedule`);
   revalidatePath(`${adminBase}/standings`);
   revalidatePath(`/tournaments/${slug}`);
+  revalidateTag("tournament-bundle", "max");
+  revalidateTag("tournament-cards", "max");
 }
 
 async function materializePlannedPlayoffs(tournamentId: string) {

@@ -1,3 +1,5 @@
+import { unstable_cache } from "next/cache";
+
 import { prisma } from "@/lib/db";
 
 import { calculateStandings } from "./standings";
@@ -45,7 +47,13 @@ export async function getTournaments(): Promise<Tournament[]> {
   return tournaments.map(mapTournament);
 }
 
-export async function getTournamentCards(): Promise<TournamentCard[]> {
+export const getTournamentCards = unstable_cache(
+  async (): Promise<TournamentCard[]> => _getTournamentCards(),
+  ["tournament-cards"],
+  { revalidate: 20, tags: ["tournament-cards"] },
+);
+
+async function _getTournamentCards(): Promise<TournamentCard[]> {
   const events = await prisma.tournament.findMany({
     include: {
       _count: {
@@ -135,7 +143,13 @@ export async function getActiveTournamentSlug(): Promise<string | null> {
   return event?.slug ?? null;
 }
 
-export async function getTournamentBundle(slug: string): Promise<TournamentBundle> {
+export const getTournamentBundle = unstable_cache(
+  async (slug: string): Promise<TournamentBundle> => _getTournamentBundle(slug),
+  ["tournament-bundle"],
+  { revalidate: 10, tags: ["tournament-bundle"] },
+);
+
+async function _getTournamentBundle(slug: string): Promise<TournamentBundle> {
   const event = await prisma.tournament.findUniqueOrThrow({
     where: { slug },
     include: {

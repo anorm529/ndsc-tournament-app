@@ -1,6 +1,6 @@
 "use server";
 
-import { refresh, revalidatePath } from "next/cache";
+import { refresh, revalidatePath, revalidateTag } from "next/cache";
 
 import { ActionState, errorState, successState } from "@/lib/action-state";
 import { getAuditActorData } from "@/lib/audit";
@@ -284,6 +284,8 @@ function revalidateTournament(slug?: string) {
   revalidatePath("/");
   revalidatePath("/admin");
   revalidatePath("/admin/tournaments");
+  revalidateTag("tournament-bundle", "max");
+  revalidateTag("tournament-cards", "max");
 
   if (!slug) {
     return;

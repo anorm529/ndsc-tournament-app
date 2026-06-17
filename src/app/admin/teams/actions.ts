@@ -1,6 +1,6 @@
 "use server";
 
-import { refresh, revalidatePath } from "next/cache";
+import { refresh, revalidatePath, revalidateTag } from "next/cache";
 
 import { prisma } from "@/lib/db";
 import { ActionState, errorState, successState } from "@/lib/action-state";
@@ -154,4 +154,6 @@ function revalidateTeamPages(slug: string) {
   revalidatePath(`${adminBase}/results`);
   revalidatePath(`${adminBase}/standings`);
   revalidatePath(`/tournaments/${slug}`);
+  revalidateTag("tournament-bundle", "max");
+  revalidateTag("tournament-cards", "max");
 }
