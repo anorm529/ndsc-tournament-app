@@ -12,8 +12,10 @@ export default async function InternalSeasonPage() {
   const champion = season.teamRows[0];
   const maleMvpRows = season.mvpRows.filter((row) => row.category === "male");
   const femaleMvpRows = season.mvpRows.filter((row) => row.category === "female");
-  const topMaleMvp = maleMvpRows[0];
-  const topFemaleMvp = femaleMvpRows[0];
+  const topMaleVotes = maleMvpRows[0]?.votes;
+  const topMaleMvps = maleMvpRows.filter((r) => r.votes === topMaleVotes);
+  const topFemaleVotes = femaleMvpRows[0]?.votes;
+  const topFemaleMvps = femaleMvpRows.filter((r) => r.votes === topFemaleVotes);
 
   return (
     <main className="min-h-screen" style={{ backgroundColor: ndscColours.page }}>
@@ -36,8 +38,8 @@ export default async function InternalSeasonPage() {
             </div>
             <div className="grid gap-3 rounded-lg border border-white/10 bg-white/5 p-4">
               <Stat icon={Trophy} label="Current leader" value={champion?.teamName ?? "TBC"} />
-              <Stat icon={Medal} label="Total male MVP" value={formatMvpLeader(topMaleMvp)} />
-              <Stat icon={Medal} label="Total female MVP" value={formatMvpLeader(topFemaleMvp)} />
+              <Stat icon={Medal} label="Total male MVP" value={formatMvpLeaders(topMaleMvps)} />
+              <Stat icon={Medal} label="Total female MVP" value={formatMvpLeaders(topFemaleMvps)} />
               <Stat icon={CalendarDays} label="Events" value={`${season.tournaments.length}`} />
             </div>
           </div>
@@ -125,12 +127,10 @@ export default async function InternalSeasonPage() {
   );
 }
 
-function formatMvpLeader(row?: { playerName: string; votes: number }) {
-  if (!row) {
-    return "TBC";
-  }
-
-  return `${row.playerName} (${row.votes})`;
+function formatMvpLeaders(rows: Array<{ playerName: string; votes: number }>) {
+  if (rows.length === 0) return "TBC";
+  const names = rows.map((r) => r.playerName).join(", ");
+  return `${names} (${rows[0].votes})`;
 }
 
 function Stat({ icon: Icon, label, value }: { icon: LucideIcon; label: string; value: string }) {
@@ -149,25 +149,28 @@ function MvpPanel({
   rows,
   title,
 }: {
-  rows: Array<{ playerName: string; teamName: string; votes: number }>;
+  rows: Array<{ playerName: string; teamNames: string[]; votes: number }>;
   title: string;
 }) {
   return (
     <section className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
       <h2 className="text-lg font-bold text-slate-950">{title}</h2>
       <ol className="mt-4 space-y-2">
-        {rows.map((row, index) => (
-          <li key={`${row.teamName}-${row.playerName}`} className="flex items-center gap-3 rounded-md bg-slate-50 px-3 py-3">
-            <span className="grid size-7 shrink-0 place-items-center rounded bg-white text-xs font-black text-slate-700">
-              {index + 1}
-            </span>
-            <span className="min-w-0 flex-1">
-              <span className="block truncate text-sm font-bold text-slate-950">{row.playerName}</span>
-              <span className="block truncate text-xs font-medium text-slate-500">{row.teamName}</span>
-            </span>
-            <span className="rounded bg-slate-950 px-2 py-1 text-xs font-black text-white">{row.votes}</span>
-          </li>
-        ))}
+        {rows.map((row) => {
+          const rank = rows.findIndex((r) => r.votes === row.votes) + 1;
+          return (
+            <li key={row.playerName} className="flex items-center gap-3 rounded-md bg-slate-50 px-3 py-3">
+              <span className="grid size-7 shrink-0 place-items-center rounded bg-white text-xs font-black text-slate-700">
+                {rank}
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block truncate text-sm font-bold text-slate-950">{row.playerName}</span>
+                <span className="block truncate text-xs font-medium text-slate-500">{row.teamNames.join(", ")}</span>
+              </span>
+              <span className="rounded bg-slate-950 px-2 py-1 text-xs font-black text-white">{row.votes}</span>
+            </li>
+          );
+        })}
       </ol>
       {rows.length === 0 ? (
         <p className="mt-4 rounded-md border border-dashed border-slate-300 bg-slate-50 px-4 py-6 text-center text-sm font-medium text-slate-600">

@@ -4,7 +4,7 @@ import { refresh, revalidatePath } from "next/cache";
 
 import { prisma } from "@/lib/db";
 import { ActionState, errorState, successState } from "@/lib/action-state";
-import { requireMinimumRole } from "@/lib/current-admin";
+import { requirePermission } from "@/lib/current-admin";
 import { getAuditActorData, writeAuditLog } from "@/lib/audit";
 import { generatePlacementPlayoffs, generateRoundRobinSchedule } from "@/lib/tournaments/scheduler";
 import { calculateStandings } from "@/lib/tournaments/standings";
@@ -12,7 +12,7 @@ import { Fixture, Team, Tournament } from "@/lib/tournaments/types";
 
 export async function generateSchedule(_state: ActionState, formData: FormData) {
   try {
-    await requireMinimumRole("tournament_admin");
+    await requirePermission("schedule");
 
     const tournamentId = requireText(formData, "tournamentId");
     const firstPitch = requireText(formData, "firstPitch");
@@ -169,7 +169,7 @@ export async function generateSchedule(_state: ActionState, formData: FormData) 
 
 export async function generatePlacementSchedule(_state: ActionState, formData: FormData) {
   try {
-    await requireMinimumRole("tournament_admin");
+    await requirePermission("schedule");
 
     const tournamentId = requireText(formData, "tournamentId");
     const firstPitch = requireText(formData, "placementFirstPitch");
@@ -279,7 +279,7 @@ export async function generatePlacementSchedule(_state: ActionState, formData: F
 
 export async function addScheduleBlock(_state: ActionState, formData: FormData) {
   try {
-    await requireMinimumRole("tournament_admin");
+    await requirePermission("schedule");
 
     const tournamentId = requireText(formData, "tournamentId");
     const label = requireText(formData, "blockLabel");
@@ -380,7 +380,7 @@ export async function addScheduleBlock(_state: ActionState, formData: FormData) 
 
 export async function deleteScheduleBlock(_state: ActionState, formData: FormData) {
   try {
-    await requireMinimumRole("tournament_admin");
+    await requirePermission("schedule");
 
     const blockId = requireText(formData, "blockId");
 
@@ -408,7 +408,7 @@ export async function deleteScheduleBlock(_state: ActionState, formData: FormDat
 
 export async function generatePlannedPlayoffs(_state: ActionState, formData: FormData) {
   try {
-    await requireMinimumRole("tournament_admin");
+    await requirePermission("schedule");
 
     const tournamentId = requireText(formData, "tournamentId");
     const firstPitch = parseDatetimeLocal(requireText(formData, "plannedPlayoffFirstPitch"));
@@ -522,7 +522,7 @@ export async function generatePlannedPlayoffs(_state: ActionState, formData: For
 
 export async function publishSchedule(_state: ActionState, formData: FormData) {
   try {
-    await requireMinimumRole("tournament_admin");
+    await requirePermission("schedule");
 
     const tournamentId = requireText(formData, "tournamentId");
 
@@ -566,7 +566,7 @@ export async function publishSchedule(_state: ActionState, formData: FormData) {
 
 export async function unpublishSchedule(_state: ActionState, formData: FormData) {
   try {
-    await requireMinimumRole("tournament_admin");
+    await requirePermission("schedule");
 
     const tournamentId = requireText(formData, "tournamentId");
     const tournament = await prisma.tournament.findUniqueOrThrow({
@@ -595,7 +595,7 @@ export async function unpublishSchedule(_state: ActionState, formData: FormData)
 
 export async function deleteSchedule(_state: ActionState, formData: FormData) {
   try {
-    await requireMinimumRole("tournament_admin");
+    await requirePermission("schedule");
 
     const tournamentId = requireText(formData, "tournamentId");
     const tournament = await prisma.tournament.findUniqueOrThrow({
@@ -643,7 +643,7 @@ export async function deleteSchedule(_state: ActionState, formData: FormData) {
 
 export async function updateFixtureSchedule(_state: ActionState, formData: FormData) {
   try {
-    await requireMinimumRole("tournament_admin");
+    await requirePermission("schedule");
 
     const fixtureId = requireText(formData, "fixtureId");
     const startsAt = parseDatetimeLocal(requireText(formData, "fixtureStartsAt"));
@@ -728,7 +728,7 @@ export async function updateFixtureSchedule(_state: ActionState, formData: FormD
 
 export async function updatePlannedPlayoffSlot(_state: ActionState, formData: FormData) {
   try {
-    await requireMinimumRole("tournament_admin");
+    await requirePermission("schedule");
 
     const matchId = requireText(formData, "matchId");
     const startsAt = parseDatetimeLocal(requireText(formData, "matchStartsAt"));

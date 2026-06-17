@@ -4,14 +4,12 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
 import { ActionState, errorState } from "@/lib/action-state";
-import { verifyAdminPassword } from "@/lib/admin-users";
-import { ADMIN_SESSION_COOKIE, getAdminPassword, getAdminSessionToken } from "@/lib/admin-session";
+import { findMainUserByEmail, verifyMainUserPassword, mapMainRoleToTournamentRole } from "@/lib/main-db-auth";
+import { ADMIN_SESSION_COOKIE, getAdminSessionToken } from "@/lib/admin-session";
 import { ADMIN_USER_COOKIE, createAdminUserCookieValue } from "@/lib/current-admin";
-import { prisma } from "@/lib/db";
 
 export async function login(_state: ActionState, formData: FormData) {
   let redirectTo = "/admin";
-  let loggedInUserId: string | null = null;
 
   try {
     const password = readString(formData, "password");
@@ -23,32 +21,27 @@ export async function login(_state: ActionState, formData: FormData) {
       throw new Error("Admin session secret is not configured.");
     }
 
-    const adminUsersCount = await prisma.adminUser.count();
+    if (!email) {
+      throw new Error("Email is required.");
+    }
 
-    if (adminUsersCount > 0) {
-      if (!email) {
-        throw new Error("Email is required.");
-      }
+    const user = await findMainUserByEmail(email);
 
-      const adminUser = await prisma.adminUser.findUnique({
-        where: { email },
-      });
+    if (!user) {
+      throw new Error("Those login details are not correct.");
+    }
 
-      if (!adminUser || !verifyAdminPassword(password, adminUser.passwordHash)) {
-        throw new Error("Those admin details are not correct.");
-      }
+    if (user.account_status !== "active") {
+      throw new Error("Your account is not active. Contact the administrator.");
+    }
 
-      loggedInUserId = adminUser.id;
-    } else {
-      const expectedPassword = getAdminPassword();
+    const tournamentRole = mapMainRoleToTournamentRole(user.role);
+    if (!tournamentRole) {
+      throw new Error("You do not have permission to access the admin area.");
+    }
 
-      if (!expectedPassword) {
-        throw new Error("Admin password is not configured.");
-      }
-
-      if (password !== expectedPassword) {
-        throw new Error("That password is not correct.");
-      }
+    if (!(await verifyMainUserPassword(password, user.password_hash))) {
+      throw new Error("Those login details are not correct.");
     }
 
     const cookieStore = await cookies();
@@ -59,17 +52,13 @@ export async function login(_state: ActionState, formData: FormData) {
       sameSite: "lax",
       secure: process.env.NODE_ENV === "production",
     });
-    if (loggedInUserId) {
-      cookieStore.set(ADMIN_USER_COOKIE, createAdminUserCookieValue(loggedInUserId), {
-        httpOnly: true,
-        maxAge: 60 * 60 * 12,
-        path: "/",
-        sameSite: "lax",
-        secure: process.env.NODE_ENV === "production",
-      });
-    } else {
-      cookieStore.delete(ADMIN_USER_COOKIE);
-    }
+    cookieStore.set(ADMIN_USER_COOKIE, createAdminUserCookieValue(user.id), {
+      httpOnly: true,
+      maxAge: 60 * 60 * 12,
+      path: "/",
+      sameSite: "lax",
+      secure: process.env.NODE_ENV === "production",
+    });
 
     redirectTo = next.startsWith("/admin") ? next : "/admin";
   } catch (error) {

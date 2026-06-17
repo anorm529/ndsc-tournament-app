@@ -416,16 +416,19 @@ function calculateMvpLeaders(votes: MvpVote[], teams: Team[]): MvpLeader[] {
 
   for (const vote of votes) {
     const normalizedPlayerName = vote.playerName.trim().replace(/\s+/g, " ");
-    const key = `${vote.category}:${vote.teamId}:${normalizedPlayerName.toLowerCase()}`;
+    const key = `${vote.category}:${normalizedPlayerName.toLowerCase()}`;
+    const teamName = teamsById.get(vote.teamId)?.name ?? "Unknown team";
     const existing = leaders.get(key);
 
     if (existing) {
       existing.votes += 1;
+      if (!existing.teamNames.includes(teamName)) {
+        existing.teamNames.push(teamName);
+      }
     } else {
       leaders.set(key, {
         playerName: normalizedPlayerName,
-        teamId: vote.teamId,
-        teamName: teamsById.get(vote.teamId)?.name ?? "Unknown team",
+        teamNames: [teamName],
         category: vote.category,
         votes: 1,
       });
@@ -433,15 +436,9 @@ function calculateMvpLeaders(votes: MvpVote[], teams: Team[]): MvpLeader[] {
   }
 
   return [...leaders.values()].sort((a, b) => {
-    if (b.votes !== a.votes) {
-      return b.votes - a.votes;
-    }
-
-    if (a.playerName !== b.playerName) {
-      return a.playerName.localeCompare(b.playerName);
-    }
-
-    return a.teamName.localeCompare(b.teamName);
+    if (b.votes !== a.votes) return b.votes - a.votes;
+    if (a.playerName !== b.playerName) return a.playerName.localeCompare(b.playerName);
+    return a.teamNames[0].localeCompare(b.teamNames[0]);
   });
 }
 
@@ -487,16 +484,17 @@ function calculateInternalMvpRows(votes: MvpVote[], teams: Team[]): InternalSeas
   for (const vote of votes) {
     const playerName = vote.playerName.trim().replace(/\s+/g, " ");
     const teamName = teamsById.get(vote.teamId)?.name ?? "Unknown team";
-    const key = `${vote.category}:${teamName.toLowerCase()}:${playerName.toLowerCase()}`;
-    const row = rows.get(key) ?? {
-      playerName,
-      teamName,
-      category: vote.category,
-      votes: 0,
-    };
+    const key = `${vote.category}:${playerName.toLowerCase()}`;
+    const existing = rows.get(key);
 
-    row.votes += 1;
-    rows.set(key, row);
+    if (existing) {
+      existing.votes += 1;
+      if (!existing.teamNames.includes(teamName)) {
+        existing.teamNames.push(teamName);
+      }
+    } else {
+      rows.set(key, { playerName, teamNames: [teamName], category: vote.category, votes: 1 });
+    }
   }
 
   return [...rows.values()].sort((a, b) => {

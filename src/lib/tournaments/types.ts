@@ -98,8 +98,7 @@ export type MvpVote = {
 
 export type MvpLeader = {
   playerName: string;
-  teamId: string;
-  teamName: string;
+  teamNames: string[];
   category: MvpCategory;
   votes: number;
 };
@@ -121,7 +120,7 @@ export type InternalSeasonTeamRow = {
 
 export type InternalSeasonMvpRow = {
   playerName: string;
-  teamName: string;
+  teamNames: string[];
   category: MvpCategory;
   votes: number;
 };

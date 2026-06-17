@@ -1,8 +1,9 @@
 import { createHmac, timingSafeEqual } from "crypto";
 import { cookies } from "next/headers";
 
-import { prisma } from "@/lib/db";
+import { findMainUserById, mapMainRoleToTournamentRole } from "@/lib/main-db-auth";
 import { getAdminSessionToken } from "@/lib/admin-session";
+import { prisma } from "@/lib/db";
 
 export const ADMIN_USER_COOKIE = "ndsc_admin_user";
 
@@ -36,42 +37,26 @@ export async function getCurrentAdminUser(): Promise<CurrentAdminUser | null> {
     return null;
   }
 
-  const user = await prisma.adminUser.findUnique({
-    where: { id: userId },
-    select: {
-      email: true,
-      id: true,
-      name: true,
-      role: true,
-    },
-  });
+  const user = await findMainUserById(userId);
+  if (!user) return null;
 
-  if (!user || !isAdminRole(user.role)) {
-    return null;
-  }
+  const role = mapMainRoleToTournamentRole(user.role);
+  if (!role) return null;
 
   return {
-    ...user,
-    role: user.role,
+    id: user.id,
+    name: user.name,
+    email: user.email,
+    role,
   };
 }
 
 export async function canManageAdminUsers() {
-  const [currentUser, adminUsersCount] = await Promise.all([
-    getCurrentAdminUser(),
-    prisma.adminUser.count(),
-  ]);
-
-  return adminUsersCount === 0 || currentUser?.role === "owner";
+  const currentUser = await getCurrentAdminUser();
+  return currentUser?.role === "owner";
 }
 
 export async function getCurrentAdminRole(): Promise<AdminRole | null> {
-  const adminUsersCount = await prisma.adminUser.count();
-
-  if (adminUsersCount === 0) {
-    return "owner";
-  }
-
   const user = await getCurrentAdminUser();
   return user?.role ?? null;
 }
@@ -105,12 +90,51 @@ export function isAdminRole(value: string): value is AdminRole {
   return adminRoles.includes(value as AdminRole);
 }
 
+// --- Granular permissions ---
+
+export const adminPermissionTypes = ["tournaments", "schedule", "scores", "check_in"] as const;
+export type AdminPermissionType = (typeof adminPermissionTypes)[number];
+
+export const permissionLabels: Record<AdminPermissionType, string> = {
+  tournaments: "Tournament management",
+  schedule: "Schedule & templates",
+  scores: "Score entry",
+  check_in: "Check-in",
+};
+
+export async function getUserPermissions(userId: string): Promise<Set<AdminPermissionType>> {
+  const rows = await prisma.adminPermission.findMany({
+    where: { userId },
+    select: { permission: true },
+  });
+  return new Set(rows.map((r) => r.permission as AdminPermissionType));
+}
+
+export async function hasPermission(permission: AdminPermissionType): Promise<boolean> {
+  const user = await getCurrentAdminUser();
+  if (!user) return false;
+  if (user.role === "owner") return true;
+  const perms = await getUserPermissions(user.id);
+  return perms.has(permission);
+}
+
+export async function requirePermission(permission: AdminPermissionType): Promise<void> {
+  const allowed = await hasPermission(permission);
+  if (!allowed) {
+    throw new Error("You don't have permission to do that.");
+  }
+}
+
 function parseAdminUserCookieValue(value: string | undefined) {
   if (!value) {
     return null;
   }
 
-  const [userId, signature] = value.split(".");
+  const dotIndex = value.lastIndexOf(".");
+  if (dotIndex === -1) return null;
+
+  const userId = value.slice(0, dotIndex);
+  const signature = value.slice(dotIndex + 1);
 
   if (!userId || !signature) {
     return null;

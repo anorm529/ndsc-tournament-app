@@ -4,11 +4,11 @@ import { refresh, revalidatePath } from "next/cache";
 
 import { prisma } from "@/lib/db";
 import { ActionState, errorState, successState } from "@/lib/action-state";
-import { requireMinimumRole } from "@/lib/current-admin";
+import { requirePermission } from "@/lib/current-admin";
 
 export async function createTeam(_state: ActionState, formData: FormData) {
   try {
-    await requireMinimumRole("tournament_admin");
+    await requirePermission("tournaments");
 
     const tournamentId = requireText(formData, "tournamentId");
     const data = readTeamForm(formData);
@@ -35,7 +35,7 @@ export async function createTeam(_state: ActionState, formData: FormData) {
 
 export async function updateTeam(_state: ActionState, formData: FormData) {
   try {
-    await requireMinimumRole("tournament_admin");
+    await requirePermission("tournaments");
 
     const teamId = requireText(formData, "teamId");
     const data = readTeamForm(formData);
@@ -64,7 +64,7 @@ export async function updateTeam(_state: ActionState, formData: FormData) {
 
 export async function deleteTeam(_state: ActionState, formData: FormData) {
   try {
-    await requireMinimumRole("tournament_admin");
+    await requirePermission("tournaments");
 
     const teamId = requireText(formData, "teamId");
 

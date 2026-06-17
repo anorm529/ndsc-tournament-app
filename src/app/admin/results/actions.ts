@@ -4,7 +4,7 @@ import { refresh, revalidatePath } from "next/cache";
 
 import { prisma } from "@/lib/db";
 import { ActionState, errorState, successState } from "@/lib/action-state";
-import { requireMinimumRole } from "@/lib/current-admin";
+import { requirePermission } from "@/lib/current-admin";
 import { getAuditActorData, writeAuditLog } from "@/lib/audit";
 import { calculateStandings } from "@/lib/tournaments/standings";
 import { Fixture, MvpCategory, Team, Tournament } from "@/lib/tournaments/types";
@@ -13,7 +13,7 @@ const placementStages = ["final", "third-place", "fifth-place"] as const;
 
 export async function updateFixtureScores(_state: ActionState, formData: FormData) {
   try {
-    await requireMinimumRole("scorekeeper");
+    await requirePermission("scores");
 
     const tournamentId = readString(formData, "tournamentId");
     const fixtureIds = formData.getAll("fixtureId").map((value) => String(value));
@@ -184,7 +184,7 @@ export async function updateFixtureScores(_state: ActionState, formData: FormDat
 
 export async function fillPlannedPlayoffSlots(_state: ActionState, formData: FormData) {
   try {
-    await requireMinimumRole("scorekeeper");
+    await requirePermission("scores");
 
     const tournamentId = readString(formData, "tournamentId");
 
@@ -238,7 +238,7 @@ function hasScoreValue(formData: FormData, key: string) {
 
 export async function deleteMvpVote(_state: ActionState, formData: FormData) {
   try {
-    await requireMinimumRole("scorekeeper");
+    await requirePermission("scores");
 
     const voteId = readString(formData, "voteId");
 
@@ -278,7 +278,7 @@ export async function deleteMvpVote(_state: ActionState, formData: FormData) {
 
 export async function deleteTournamentMvpVotes(_state: ActionState, formData: FormData) {
   try {
-    await requireMinimumRole("scorekeeper");
+    await requirePermission("scores");
 
     const tournamentId = readString(formData, "tournamentId");
 

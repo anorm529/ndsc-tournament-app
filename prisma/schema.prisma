@@ -55,6 +55,15 @@ model AdminUser {
   @@map("admin_users")
 }
 
+model AdminPermission {
+  userId     String   @map("user_id") @db.Uuid
+  permission String
+  grantedAt  DateTime @default(now()) @map("granted_at")
+
+  @@id([userId, permission])
+  @@map("admin_permissions")
+}
+
 model ScheduleBlock {
   id           String   @id @default(uuid()) @db.Uuid
   tournamentId String   @map("tournament_id") @db.Uuid

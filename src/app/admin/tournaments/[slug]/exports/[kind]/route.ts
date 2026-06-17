@@ -71,7 +71,7 @@ function getRows(kind: string, bundle: Awaited<ReturnType<typeof getTournamentBu
 
   return bundle.mvpLeaders.map((leader) => ({
     player: leader.playerName,
-    team: leader.teamName,
+    team: leader.teamNames.join(", "),
     category: leader.category,
     votes: leader.votes,
   }));
